@@ -1,0 +1,63 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>preview</LangVersion>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <AssemblyName>Unity.MemoryProfiler.Parser</AssemblyName>
+    <RootNamespace>Unity.MemoryProfiler.Editor</RootNamespace>
+    <AssemblyTitle>Unity Memory Snapshot Parser</AssemblyTitle>
+    <AssemblyDescription>A .NET 9.0 library for parsing Unity Memory Profiler snapshot files (.snap)</AssemblyDescription>
+    <AssemblyCompany>Unity Memory Tools</AssemblyCompany>
+    <AssemblyProduct>Unity Memory Snapshot Parser</AssemblyProduct>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+    <Copyright>Copyright © 2024 Unity Memory Tools</Copyright>
+    <PackageId>Unity.MemoryProfiler.Parser</PackageId>
+    <PackageVersion>1.0.0</PackageVersion>
+    <PackageDescription>Cross-platform .NET library for parsing Unity Memory Profiler snapshot files</PackageDescription>
+    <PackageTags>unity;memory;profiler;snapshot;parser;dotnet</PackageTags>
+    <RepositoryUrl>https://github.com/unity-memory-tools/snapshot-parser</RepositoryUrl>
+    <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+    <DefineConstants>DEBUG;TRACE;CSHARP_7_3_OR_NEWER</DefineConstants>
+    <DebugType>full</DebugType>
+    <DebugSymbols>true</DebugSymbols>
+    <Optimize>false</Optimize>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+    <DefineConstants>TRACE;CSHARP_7_3_OR_NEWER</DefineConstants>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.IO.Compression" Version="4.3.0" />
+    <PackageReference Include="System.Memory" Version="4.5.5" />
+    <PackageReference Include="System.Text.Json" Version="9.0.0" />
+    <PackageReference Include="System.Buffers" Version="4.5.1" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.0.0" />
+    <PackageReference Include="System.IO.Pipelines" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="Reader\" />
+    <Folder Include="Cached\" />
+    <Folder Include="Analysis\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Remove="FileData\**" />
+    <Compile Remove="Utilities\CallstacksUtility.cs" />
+    <Compile Remove="Utilities\EditorAssetFinderUtility.cs" />
+    <Compile Remove="Utilities\ExportUtility.cs" />
+    <Compile Remove="Utilities\PlatformsHelper.cs" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,34 @@
+# Add directories or file patterns to ignore during indexing (e.g. foo/ or *.csv)
+
+# Build output
+**/[Bb]in/
+**/[Oo]bj/
+
+# Unity temporary files
+**/[Tt]emp/
+**/[Ll]ibrary/
+**/[Uu]ser[Ss]ettings/
+
+# Log files
+**/[Ll]ogs/
+*.log
+
+# Captures
+**/[Cc]aptures/
+**/[Mm]emory[Cc]aptures/
+
+# Node.js
+node_modules/
+
+# Visual Studio
+.vs/
+*.suo
+*.user
+
+# Rider
+.idea/
+
+# Temporary files
+*.tmp
+*.bak
+*.backup

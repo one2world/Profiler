@@ -1,0 +1,90 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <LangVersion>preview</LangVersion>
+    <AssemblyName>Unity.MemoryProfiler.UI</AssemblyName>
+    <RootNamespace>Unity.MemoryProfiler.UI</RootNamespace>
+    <Product>Unity Memory Profiler</Product>
+    <Description>A modern WPF application for analyzing Unity memory snapshots</Description>
+    <AssemblyTitle>Unity Memory Profiler UI</AssemblyTitle>
+    <AssemblyVersion>1.0.0.0</AssemblyVersion>
+    <FileVersion>1.0.0.0</FileVersion>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Unity.MemoryProfiler.Parser\Unity.MemoryProfiler.Parser.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.2.2" />
+    <PackageReference Include="System.Drawing.Common" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Properties\Settings.Designer.cs">
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+    </Compile>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <None Update="appsettings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- DevExpress Core -->
+    <Reference Include="DevExpress.Data.v23.1">
+      <HintPath>..\Libs\DevExpress.Data.v23.1.dll</HintPath>
+    </Reference>
+    <Reference Include="DevExpress.Drawing.v23.1">
+      <HintPath>..\Libs\DevExpress.Drawing.v23.1.dll</HintPath>
+    </Reference>
+    <Reference Include="DevExpress.Xpf.Core.v23.1">
+      <HintPath>..\Libs\DevExpress.Xpf.Core.v23.1.dll</HintPath>
+    </Reference>
+    
+    <!-- DevExpress Grid/TreeList -->
+    <Reference Include="DevExpress.Xpf.Grid.v23.1.Core">
+      <HintPath>..\Libs\DevExpress.Xpf.Grid.v23.1.Core.dll</HintPath>
+    </Reference>
+    <Reference Include="DevExpress.Xpf.Grid.v23.1">
+      <HintPath>..\Libs\DevExpress.Xpf.Grid.v23.1.dll</HintPath>
+    </Reference>
+    
+    <!-- DevExpress Printing (Required for GridControl) -->
+    <Reference Include="DevExpress.Printing.v23.1.Core">
+      <HintPath>..\Libs\DevExpress.Printing.v23.1.Core.dll</HintPath>
+    </Reference>
+    
+    <!-- DevExpress MVVM -->
+    <Reference Include="DevExpress.Mvvm.v23.1">
+      <HintPath>..\Libs\DevExpress.Mvvm.v23.1.dll</HintPath>
+    </Reference>
+    
+    <!-- DevExpress Themes -->
+    <Reference Include="DevExpress.Xpf.Themes.Office2019Colorful.v23.1">
+      <HintPath>..\Libs\DevExpress.Xpf.Themes.Office2019Colorful.v23.1.dll</HintPath>
+    </Reference>
+    
+    <!-- DevExpress Utils -->
+    <Reference Include="DevExpress.Utils.v23.1">
+      <HintPath>..\Libs\DevExpress.Utils.v23.1.dll</HintPath>
+    </Reference>
+    <Reference Include="DevExpress.Utils.v23.1.UI">
+      <HintPath>..\Libs\DevExpress.Utils.v23.1.UI.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

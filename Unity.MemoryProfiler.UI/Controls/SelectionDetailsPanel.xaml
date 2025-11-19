@@ -1,0 +1,160 @@
+<UserControl x:Class="Unity.MemoryProfiler.UI.Controls.SelectionDetailsPanel"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Unity.MemoryProfiler.UI.Controls"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="350"
+             Background="White">
+    <UserControl.Resources>
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Margin" Value="0,10,0,5"/>
+            <Setter Property="Foreground" Value="#333333"/>
+        </Style>
+        <Style x:Key="PropertyLabelStyle" TargetType="TextBlock">
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#666666"/>
+            <Setter Property="Margin" Value="0,3,10,3"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+        </Style>
+        <Style x:Key="PropertyValueStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="#333333"/>
+            <Setter Property="Margin" Value="0,3,0,3"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+        </Style>
+        <Style x:Key="ExpanderHeaderStyle" TargetType="ToggleButton">
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ToggleButton">
+                        <Border Background="Transparent">
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <Path x:Name="Arrow"
+                                      Grid.Column="0"
+                                      Data="M 0 0 L 4 4 L 0 8 Z"
+                                      Fill="#666666"
+                                      VerticalAlignment="Center"
+                                      Margin="5,0,5,0"/>
+                                <ContentPresenter Grid.Column="1" VerticalAlignment="Center"/>
+                            </Grid>
+                        </Border>
+                        <ControlTemplate.Triggers>
+                            <Trigger Property="IsChecked" Value="True">
+                                <Setter TargetName="Arrow" Property="Data" Value="M 0 0 L 8 0 L 4 4 Z"/>
+                            </Trigger>
+                            <Trigger Property="IsMouseOver" Value="True">
+                                <Setter TargetName="Arrow" Property="Fill" Value="#333333"/>
+                            </Trigger>
+                        </ControlTemplate.Triggers>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+        </Style>
+    </UserControl.Resources>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="15">
+            <!-- 标题区域 -->
+            <TextBlock x:Name="TitleTextBlock" 
+                       Text="No Selection" 
+                       FontSize="16" 
+                       FontWeight="Bold" 
+                       TextWrapping="Wrap"
+                       Foreground="#333333"
+                       Margin="0,0,0,15"/>
+
+            <!-- 无选择时的提示 -->
+            <TextBlock x:Name="NoSelectionMessage"
+                       Text="Select an item in the table to view its details here."
+                       Foreground="Gray"
+                       FontStyle="Italic"
+                       TextWrapping="Wrap"
+                       Visibility="Visible"/>
+
+            <!-- 详情内容容器 -->
+            <StackPanel x:Name="DetailsContent" Visibility="Collapsed">
+                
+                <!-- 基本信息组 -->
+                <Expander x:Name="BasicInfoExpander" IsExpanded="True" Margin="0,5,0,10">
+                    <Expander.HeaderTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="Basic Information" Style="{StaticResource SectionHeaderStyle}"/>
+                        </DataTemplate>
+                    </Expander.HeaderTemplate>
+                    <StackPanel x:Name="BasicInfoContent" Margin="10,5,0,5"/>
+                </Expander>
+
+                <!-- 内存信息组 -->
+                <Expander x:Name="MemoryInfoExpander" IsExpanded="True" Margin="0,5,0,10">
+                    <Expander.HeaderTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="Memory Information" Style="{StaticResource SectionHeaderStyle}"/>
+                        </DataTemplate>
+                    </Expander.HeaderTemplate>
+                    <StackPanel x:Name="MemoryInfoContent" Margin="10,5,0,5"/>
+                </Expander>
+
+                <!-- 描述信息组 -->
+                <Expander x:Name="DescriptionExpander" IsExpanded="False" Margin="0,5,0,10">
+                    <Expander.HeaderTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="Description" Style="{StaticResource SectionHeaderStyle}"/>
+                        </DataTemplate>
+                    </Expander.HeaderTemplate>
+                    <TextBlock x:Name="DescriptionText" 
+                               Style="{StaticResource PropertyValueStyle}"
+                               Margin="10,5,0,5"/>
+                </Expander>
+
+                <!-- 高级信息组 -->
+                <Expander x:Name="AdvancedInfoExpander" IsExpanded="False" Margin="0,5,0,10">
+                    <Expander.HeaderTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="Advanced" Style="{StaticResource SectionHeaderStyle}"/>
+                        </DataTemplate>
+                    </Expander.HeaderTemplate>
+                    <StackPanel x:Name="AdvancedInfoContent" Margin="10,5,0,5"/>
+                </Expander>
+
+                <!-- Managed对象检查器组 -->
+                <Expander x:Name="ManagedFieldsExpander" 
+                          IsExpanded="True" 
+                          Margin="0,5,0,10"
+                          Visibility="Collapsed">
+                    <Expander.HeaderTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="Managed Fields" Style="{StaticResource SectionHeaderStyle}"/>
+                        </DataTemplate>
+                    </Expander.HeaderTemplate>
+                    <local:ManagedObjectInspector x:Name="ManagedObjectInspectorControl" 
+                                                  Height="300"
+                                                  Margin="10,5,0,5"/>
+                </Expander>
+
+                <!-- 引用浏览器组 (References / Paths To Root) -->
+                <Expander x:Name="ReferencesExpander" 
+                          IsExpanded="True" 
+                          Margin="0,5,0,10"
+                          Visibility="Collapsed">
+                    <Expander.HeaderTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="References" Style="{StaticResource SectionHeaderStyle}"/>
+                        </DataTemplate>
+                    </Expander.HeaderTemplate>
+                    <local:PathsToRootView x:Name="PathsToRootViewControl" 
+                                           Height="400"
+                                           Margin="10,5,0,5"/>
+                </Expander>
+
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>
+

@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Unity.MemoryProfiler.UI": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

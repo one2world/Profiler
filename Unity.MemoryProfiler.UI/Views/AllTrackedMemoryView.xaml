@@ -1,0 +1,520 @@
+<UserControl x:Class="Unity.MemoryProfiler.UI.Views.AllTrackedMemoryView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:Unity.MemoryProfiler.UI.Views"
+             xmlns:controls="clr-namespace:Unity.MemoryProfiler.UI.Controls"
+             xmlns:converters="clr-namespace:Unity.MemoryProfiler.UI.Converters"
+             xmlns:models="clr-namespace:Unity.MemoryProfiler.UI.Models"
+             xmlns:dxg="http://schemas.devexpress.com/winfx/2008/xaml/grid"
+             mc:Ignorable="d" 
+             d:DesignHeight="800" d:DesignWidth="1200"
+             Background="White">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <converters:NullToVisibilityConverter x:Key="NullToVisibilityConverter"/>
+            <converters:NotNullToVisibilityConverter x:Key="NotNullToVisibilityConverter"/>
+            <converters:PercentageToWidthConverter x:Key="PercentageToWidthConverter"/>
+            <converters:BoolToFontWeightConverter x:Key="BoolToFontWeightConverter"/>
+            <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+            <converters:InverseBoolToVisibilityConverter x:Key="InverseBoolToVisibilityConverter"/>
+            <converters:DeltaToColorConverter x:Key="DeltaToColorConverter"/>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- 标题和总计 -->
+        <Border Grid.Row="0" Background="#F5F5F5" Padding="15,10">
+            <StackPanel>
+                <TextBlock Text="All Of Memory" FontSize="20" FontWeight="SemiBold"/>
+                
+                <!-- 单快照模式：显示描述 -->
+                <TextBlock Text="A breakdown of all tracked memory that Unity knows about." 
+                           Foreground="Gray" Margin="0,5,0,0"
+                           Visibility="{Binding IsCompareMode, Converter={StaticResource InverseBoolToVisibilityConverter}}"/>
+                
+                <!-- 对比模式：显示描述 -->
+                <TextBlock Text="A comparison of all tracked memory in each capture." 
+                           Foreground="Gray" Margin="0,5,0,0"
+                           Visibility="{Binding IsCompareMode, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                
+                <!-- 单快照模式：统计信息 -->
+                <StackPanel Orientation="Horizontal" Margin="0,10,0,0"
+                            Visibility="{Binding IsCompareMode, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+                    <TextBlock Margin="0,0,20,0">
+                        <Run Text="Total Memory In Snapshot: " FontWeight="SemiBold"/>
+                        <Run Text="{Binding AllTrackedMemoryData.TotalSnapshotMemoryMB, StringFormat={}{0:F2} MB, Mode=OneWay}"/>
+                    </TextBlock>
+                    <TextBlock>
+                        <Run Text="Allocated Memory In Table: " FontWeight="SemiBold"/>
+                        <Run Text="{Binding AllTrackedMemoryData.FormattedTotalMemoryInTable, Mode=OneWay}" Foreground="#2196F3"/>
+                    </TextBlock>
+                </StackPanel>
+                
+                <!-- 对比模式：统计信息（A、B、Diff） -->
+                <Grid Margin="0,10,0,0" Visibility="{Binding IsCompareMode, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
+                    </Grid.RowDefinitions>
+                    
+                    <!-- 第一行：Total Memory In Snapshot -->
+                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Total Memory In Snapshot: " FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="5,0,20,0">
+                        <TextBlock Text="A: " FontWeight="SemiBold" Foreground="#666"/>
+                        <TextBlock Text="{Binding FormattedTotalSnapshotSizeA, Mode=OneWay}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Row="0" Grid.Column="2" Orientation="Horizontal" Margin="0,0,20,0">
+                        <TextBlock Text="B: " FontWeight="SemiBold" Foreground="#666"/>
+                        <TextBlock Text="{Binding FormattedTotalSnapshotSizeB, Mode=OneWay}"/>
+                    </StackPanel>
+                    <StackPanel Grid.Row="0" Grid.Column="3" Orientation="Horizontal">
+                        <TextBlock Text="Diff: " FontWeight="SemiBold" Foreground="#666"/>
+                        <TextBlock Text="{Binding FormattedTotalSnapshotSizeDiff, Mode=OneWay}" FontWeight="Bold"/>
+                    </StackPanel>
+                    
+                    <!-- 第二行：Allocated Memory In Table -->
+                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Allocated Memory In Table: " FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,5,0,0"/>
+                    <StackPanel Grid.Row="1" Grid.Column="1" Orientation="Horizontal" Margin="5,5,20,0">
+                        <TextBlock Text="A: " FontWeight="SemiBold" Foreground="#666"/>
+                        <TextBlock Text="{Binding FormattedTotalSizeInTableA, Mode=OneWay}" Foreground="#2196F3"/>
+                    </StackPanel>
+                    <StackPanel Grid.Row="1" Grid.Column="2" Orientation="Horizontal" Margin="0,5,20,0">
+                        <TextBlock Text="B: " FontWeight="SemiBold" Foreground="#666"/>
+                        <TextBlock Text="{Binding FormattedTotalSizeInTableB, Mode=OneWay}" Foreground="#2196F3"/>
+                    </StackPanel>
+                    <StackPanel Grid.Row="1" Grid.Column="3" Orientation="Horizontal" Margin="0,5,0,0">
+                        <TextBlock Text="Diff: " FontWeight="SemiBold" Foreground="#666"/>
+                        <TextBlock Text="{Binding FormattedTotalSizeInTableDiff, Mode=OneWay}" Foreground="#2196F3" FontWeight="Bold"/>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </Border>
+
+        <!-- 过滤和排序选项 -->
+        <Border Grid.Row="1" BorderBrush="#E0E0E0" BorderThickness="0,1" Padding="15,10" Background="White">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <TextBlock Text="View:" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                    <ComboBox SelectedIndex="0" Width="200" Margin="0,0,20,0">
+                        <ComboBoxItem Content="Allocated Memory"/>
+                        <ComboBoxItem Content="Allocated and Resident Memory on Device"/>
+                    </ComboBox>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ========== 单快照模式UI ========== -->
+        <Grid Grid.Row="2" Visibility="{Binding IsCompareMode, Converter={StaticResource InverseBoolToVisibilityConverter}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- DevExpress TreeListControl（单快照） -->
+            <dxg:TreeListControl x:Name="AllTrackedMemoryTreeList"
+                                 Grid.Row="0"
+                                 ItemsSource="{Binding AllTrackedMemoryData.RootNodes}"
+                                 ShowBorder="True"
+                                 SelectionMode="Row">
+                <dxg:TreeListControl.View>
+                    <dxg:TreeListView AutoWidth="True"
+                                      NavigationStyle="Row"
+                                      AllowEditing="False"
+                                      ShowIndicator="False"
+                                      TreeDerivationMode="ChildNodesSelector"
+                                      ChildNodesPath="Children"
+                                      ShowVerticalLines="False"
+                                      ShowHorizontalLines="True"
+                                      AllowPerPixelScrolling="True"
+                                      AllowCascadeUpdate="True"
+                                      AllowSorting="True"
+                                      FocusedRowChanged="OnFocusedRowChanged"
+                                      ShowAutoFilterRow="True"
+                                      AllowColumnFiltering="True"
+                                      ShowSearchPanelMode="Always"
+                                      SearchPanelNullText="Search..."/>
+                </dxg:TreeListControl.View>
+                
+                <dxg:TreeListControl.Columns>
+                    <!-- Description 列（字符串排序，显示DisplayName） -->
+                    <dxg:TreeListColumn Header="Description" 
+                                        FieldName="Name" 
+                                        Width="400"
+                                        AllowSorting="True">
+                        <dxg:TreeListColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Row.DisplayName}" 
+                                           TextTrimming="CharacterEllipsis"
+                                           ToolTip="{Binding Row.DisplayName}"
+                                           FontWeight="{Binding Row.IsGroupNode, Converter={StaticResource BoolToFontWeightConverter}}"/>
+                            </DataTemplate>
+                        </dxg:TreeListColumn.CellTemplate>
+                    </dxg:TreeListColumn>
+
+                    <!-- Allocated Size 列（按AllocatedSize数值排序） -->
+                    <dxg:TreeListColumn Header="Allocated Size" 
+                                        FieldName="AllocatedSize" 
+                                        Width="150"
+                                        AllowSorting="True"
+                                        SortMode="Value">
+                        <dxg:TreeListColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Row.FormattedAllocatedSize}" 
+                                           TextAlignment="Right" 
+                                           FontWeight="SemiBold"/>
+                            </DataTemplate>
+                        </dxg:TreeListColumn.CellTemplate>
+                    </dxg:TreeListColumn>
+
+                    <!-- % Impact 列（按Percentage数值排序） -->
+                    <dxg:TreeListColumn Header="% Impact" 
+                                        FieldName="Percentage" 
+                                        Width="180"
+                                        AllowSorting="True"
+                                        SortMode="Value">
+                        <dxg:TreeListColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Row.FormattedPercentage}" 
+                                           TextAlignment="Center"/>
+                            </DataTemplate>
+                        </dxg:TreeListColumn.CellTemplate>
+                    </dxg:TreeListColumn>
+
+                    <!-- Resident Size 列（按ResidentSize数值排序） -->
+                    <dxg:TreeListColumn Header="Resident Size" 
+                                        FieldName="ResidentSize" 
+                                        Width="150"
+                                        AllowSorting="True"
+                                        SortMode="Value">
+                        <dxg:TreeListColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Row.FormattedResidentSize}" 
+                                           TextAlignment="Right"/>
+                            </DataTemplate>
+                        </dxg:TreeListColumn.CellTemplate>
+                    </dxg:TreeListColumn>
+                </dxg:TreeListControl.Columns>
+            </dxg:TreeListControl>
+
+        <!-- 无数据提示 -->
+            <Border Grid.Row="0"
+                Background="White" 
+                Visibility="{Binding AllTrackedMemoryData, Converter={StaticResource NullToVisibilityConverter}, ConverterParameter=Inverse}">
+                <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                    <TextBlock Text="No memory data available" 
+                           FontSize="16" 
+                           Foreground="Gray" 
+                           TextAlignment="Center"/>
+                    <TextBlock Text="{Binding StatusMessage}" 
+                           FontSize="14" 
+                           Foreground="Gray" 
+                           TextAlignment="Center" 
+                           Margin="0,10,0,0"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- ========== 对比模式UI ========== -->
+        <!-- Unity官方架构：主表（上） + Base/Compared并排（下），垂直分隔 -->
+        <Grid Grid.Row="2" Visibility="{Binding IsCompareMode, Converter={StaticResource BoolToVisibilityConverter}}">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="2*"/>     <!-- 主对比TreeView + 工具栏 -->
+                <RowDefinition Height="Auto"/>   <!-- Splitter -->
+                <RowDefinition Height="*"/>      <!-- Base/Compared并排详细表 -->
+            </Grid.RowDefinitions>
+
+            <!-- 主对比内容区域（上部：TreeView + 工具栏） -->
+            <Grid Grid.Row="0">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="*"/>      <!-- TreeView -->
+                    <RowDefinition Height="Auto"/>   <!-- 工具栏 -->
+                </Grid.RowDefinitions>
+
+            <!-- 主对比TreeView -->
+            <dxg:TreeListControl Grid.Row="0"
+                                 x:Name="ComparisonTreeListControl"
+                                 ItemsSource="{Binding ComparisonRootNodes}"
+                                 SelectedItem="{Binding SelectedComparisonNode, Mode=TwoWay}"
+                                 SelectionMode="Row"
+                                 ShowBorder="True">
+                <dxg:TreeListControl.View>
+                    <dxg:TreeListView AutoWidth="True"
+                                      NavigationStyle="Row"
+                                      AllowEditing="False"
+                                      ShowIndicator="False"
+                                      TreeDerivationMode="ChildNodesSelector"
+                                      ChildNodesPath="Children"
+                                      ShowVerticalLines="False"
+                                      ShowHorizontalLines="True"
+                                      AllowPerPixelScrolling="True"
+                                      AllowSorting="True"
+                                      ShowAutoFilterRow="True"
+                                      AllowColumnFiltering="True"
+                                      ShowSearchPanelMode="Always"
+                                      SearchPanelNullText="Search..."/>
+                </dxg:TreeListControl.View>
+
+                <dxg:TreeListControl.Columns>
+                    <!-- Description 列 -->
+                    <dxg:TreeListColumn Header="Description" 
+                                        FieldName="Name" 
+                                        Width="350"
+                                        AllowSorting="True">
+                        <dxg:TreeListColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Row.Name}" 
+                                           VerticalAlignment="Center"
+                                           FontFamily="Consolas"
+                                           TextTrimming="CharacterEllipsis"
+                                           ToolTip="{Binding Row.Name}"/>
+                            </DataTemplate>
+                        </dxg:TreeListColumn.CellTemplate>
+                    </dxg:TreeListColumn>
+
+                    <!-- Size Delta 列（彩色，带符号） -->
+                    <dxg:TreeListColumn Header="Size Delta" 
+                                        FieldName="SizeDelta" 
+                                        Width="150"
+                                        AllowSorting="True"
+                                        SortMode="Value">
+                        <dxg:TreeListColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Row.SizeDeltaFormatted}" 
+                                           Foreground="{Binding Row.DeltaColor}"
+                                           VerticalAlignment="Center"
+                                           FontFamily="Consolas"
+                                           FontWeight="Bold"
+                                           TextAlignment="Right"/>
+                            </DataTemplate>
+                        </dxg:TreeListColumn.CellTemplate>
+                    </dxg:TreeListColumn>
+
+                    <!-- Size in A 列 -->
+                    <dxg:TreeListColumn Header="Size in A" 
+                                        FieldName="TotalSizeInA" 
+                                        Width="130"
+                                        AllowSorting="True"
+                                        SortMode="Value">
+                        <dxg:TreeListColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Row.TotalSizeInAFormatted}" 
+                                           VerticalAlignment="Center"
+                                           FontFamily="Consolas"
+                                           Foreground="#888888"
+                                           TextAlignment="Right"/>
+                            </DataTemplate>
+                        </dxg:TreeListColumn.CellTemplate>
+                    </dxg:TreeListColumn>
+
+                    <!-- Size in B 列 -->
+                    <dxg:TreeListColumn Header="Size in B" 
+                                        FieldName="TotalSizeInB" 
+                                        Width="130"
+                                        AllowSorting="True"
+                                        SortMode="Value">
+                        <dxg:TreeListColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Row.TotalSizeInBFormatted}" 
+                                           VerticalAlignment="Center"
+                                           FontFamily="Consolas"
+                                           Foreground="#888888"
+                                           TextAlignment="Right"/>
+                            </DataTemplate>
+                        </dxg:TreeListColumn.CellTemplate>
+                    </dxg:TreeListColumn>
+
+                    <!-- Count Delta 列 -->
+                    <dxg:TreeListColumn Header="Count Delta" 
+                                        FieldName="CountDelta" 
+                                        Width="120"
+                                        AllowSorting="True"
+                                        SortMode="Value">
+                        <dxg:TreeListColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Row.CountDelta, StringFormat={}{0:N0}}" 
+                                           VerticalAlignment="Center"
+                                           FontFamily="Consolas"
+                                           TextAlignment="Right"/>
+                            </DataTemplate>
+                        </dxg:TreeListColumn.CellTemplate>
+                    </dxg:TreeListColumn>
+
+                    <!-- Count in A 列 -->
+                    <dxg:TreeListColumn Header="Count in A" 
+                                        FieldName="CountInA" 
+                                        Width="100"
+                                        AllowSorting="True"
+                                        SortMode="Value">
+                        <dxg:TreeListColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Row.CountInA, StringFormat={}{0:N0}}" 
+                                           VerticalAlignment="Center"
+                                           FontFamily="Consolas"
+                                           Foreground="#666666"
+                                           TextAlignment="Right"/>
+                            </DataTemplate>
+                        </dxg:TreeListColumn.CellTemplate>
+                    </dxg:TreeListColumn>
+
+                    <!-- Count in B 列 -->
+                    <dxg:TreeListColumn Header="Count in B" 
+                                        FieldName="CountInB" 
+                                        Width="100"
+                                        AllowSorting="True"
+                                        SortMode="Value">
+                        <dxg:TreeListColumn.CellTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Row.CountInB, StringFormat={}{0:N0}}" 
+                                           VerticalAlignment="Center"
+                                           FontFamily="Consolas"
+                                           Foreground="#666666"
+                                           TextAlignment="Right"/>
+                            </DataTemplate>
+                        </dxg:TreeListColumn.CellTemplate>
+                    </dxg:TreeListColumn>
+                </dxg:TreeListControl.Columns>
+            </dxg:TreeListControl>
+
+            <!-- 工具栏（主表底部） -->
+            <Border Grid.Row="1" Background="#2D2D30" Padding="10,5" BorderBrush="#3F3F46" BorderThickness="0,1,0,0">
+                <StackPanel Orientation="Horizontal">
+                    <CheckBox Content="Show Unchanged" 
+                              IsChecked="{Binding IncludeUnchanged}"
+                              Foreground="#F1F1F1"
+                              VerticalAlignment="Center"
+                              Margin="0,0,20,0"/>
+                    <TextBlock Text="{Binding StatusMessage}" 
+                               Foreground="#AAAAAA" 
+                               VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+            </Grid>
+            <!-- 结束主对比内容区域 -->
+
+            <!-- GridSplitter（左右分隔） -->
+            <GridSplitter Grid.Row="1" Height="5" HorizontalAlignment="Stretch" 
+                          Background="#3F3F46" ShowsPreview="False"/>
+
+            <!-- Base/Compared详细表区域（并排布局） -->
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>    <!-- Base详细表 -->
+                    <ColumnDefinition Width="*"/>    <!-- Compared详细表 -->
+                </Grid.ColumnDefinitions>
+
+                <!-- Base (A) 详细表 -->
+                <Border Grid.Column="0" BorderBrush="#3F3F46" BorderThickness="0,0,1,0" Padding="10">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/> <!-- 标题 -->
+                            <RowDefinition Height="*"/>    <!-- TreeView或提示 -->
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Text="Base (A)" FontWeight="Bold" FontSize="14" Foreground="#F1F1F1" Margin="0,0,0,10"/>
+                        
+                        <!-- Base详细TreeView -->
+                        <dxg:TreeListControl Grid.Row="1"
+                                             ItemsSource="{Binding BaseDetailedData.RootNodes}"
+                                             SelectedItem="{Binding BaseSelectedNode, Mode=TwoWay}"
+                                             SelectionMode="Row"
+                                             Visibility="{Binding BaseDetailedData, Converter={StaticResource NotNullToVisibilityConverter}}">
+                            <dxg:TreeListControl.View>
+                                <dxg:TreeListView AutoWidth="True"
+                                                  NavigationStyle="Row"
+                                                  AllowEditing="False"
+                                                  TreeDerivationMode="ChildNodesSelector"
+                                                  ChildNodesPath="Children"
+                                                  ShowVerticalLines="False"
+                                                  ShowHorizontalLines="True"
+                                                  AllowPerPixelScrolling="True"/>
+                            </dxg:TreeListControl.View>
+
+                            <dxg:TreeListControl.Columns>
+                                <dxg:TreeListColumn Header="Description" FieldName="Name" Width="300"/>
+                                <dxg:TreeListColumn Header="Allocated Size" FieldName="FormattedAllocatedSize" Width="150"/>
+                                <dxg:TreeListColumn Header="% Impact" FieldName="FormattedPercentage" Width="100"/>
+                            </dxg:TreeListControl.Columns>
+                        </dxg:TreeListControl>
+
+                        <!-- 无数据提示 -->
+                        <TextBlock Grid.Row="1"
+                                   Text="Select a leaf node in the comparison table to view details" 
+                                   Foreground="#666666" 
+                                   FontStyle="Italic"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Visibility="{Binding BaseDetailedData, Converter={StaticResource NullToVisibilityConverter}}"/>
+                    </Grid>
+                </Border>
+
+                <!-- Compared (B) 详细表 -->
+                <Border Grid.Column="1" BorderBrush="#3F3F46" BorderThickness="1,0,0,0" Padding="10">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/> <!-- 标题 -->
+                            <RowDefinition Height="*"/>    <!-- TreeView或提示 -->
+                        </Grid.RowDefinitions>
+
+                        <TextBlock Grid.Row="0" Text="Compared (B)" FontWeight="Bold" FontSize="14" Foreground="#F1F1F1" Margin="0,0,0,10"/>
+                        
+                        <!-- Compared详细TreeView -->
+                        <dxg:TreeListControl Grid.Row="1"
+                                             ItemsSource="{Binding ComparedDetailedData.RootNodes}"
+                                             SelectedItem="{Binding ComparedSelectedNode, Mode=TwoWay}"
+                                             SelectionMode="Row"
+                                             Visibility="{Binding ComparedDetailedData, Converter={StaticResource NotNullToVisibilityConverter}}">
+                            <dxg:TreeListControl.View>
+                                <dxg:TreeListView AutoWidth="True"
+                                                  NavigationStyle="Row"
+                                                  AllowEditing="False"
+                                                  TreeDerivationMode="ChildNodesSelector"
+                                                  ChildNodesPath="Children"
+                                                  ShowVerticalLines="False"
+                                                  ShowHorizontalLines="True"
+                                                  AllowPerPixelScrolling="True"/>
+                            </dxg:TreeListControl.View>
+
+                            <dxg:TreeListControl.Columns>
+                                <dxg:TreeListColumn Header="Description" FieldName="Name" Width="300"/>
+                                <dxg:TreeListColumn Header="Allocated Size" FieldName="FormattedAllocatedSize" Width="150"/>
+                                <dxg:TreeListColumn Header="% Impact" FieldName="FormattedPercentage" Width="100"/>
+                            </dxg:TreeListControl.Columns>
+                        </dxg:TreeListControl>
+
+                        <!-- 无数据提示 -->
+                        <TextBlock Grid.Row="1"
+                                   Text="Select a leaf node in the comparison table to view details" 
+                                   Foreground="#666666" 
+                                   FontStyle="Italic"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"
+                                   Visibility="{Binding ComparedDetailedData, Converter={StaticResource NullToVisibilityConverter}}"/>
+                    </Grid>
+                </Border>
+            </Grid>
+            <!-- 结束Base/Compared详细表区域 -->
+        </Grid>
+        <!-- 结束对比模式UI -->
+    </Grid>
+</UserControl>
+

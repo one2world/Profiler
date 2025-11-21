@@ -51,6 +51,9 @@
             <TabItem Header="All Of Memory">
                 <views:AllTrackedMemoryView DataContext="{Binding AllTrackedMemoryViewModel}"/>
             </TabItem>
+            <TabItem Header="Managed Objects">
+                <views:ManagedObjectsView DataContext="{Binding ManagedObjectsViewModel}"/>
+            </TabItem>
             <TabItem Header="Comparison" x:Name="ComparisonTab" Visibility="Collapsed">
                 <views:ComparisonView x:Name="ComparisonViewControl" DataContext="{Binding ComparisonViewModel}"/>
             </TabItem>

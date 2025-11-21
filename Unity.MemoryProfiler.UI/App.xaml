@@ -1,8 +1,9 @@
 ﻿<Application x:Class="Unity.MemoryProfiler.UI.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:Unity.MemoryProfiler.UI">
+             xmlns:local="clr-namespace:Unity.MemoryProfiler.UI"
+             xmlns:converters="clr-namespace:Unity.MemoryProfiler.UI.Converters">
     <Application.Resources>
-         
+        <converters:BoolToStringConverter x:Key="BoolToStringConverter"/>
     </Application.Resources>
 </Application>

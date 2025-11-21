@@ -169,6 +169,60 @@ namespace Unity.MemoryProfiler.UI.ModelBuilders.Comparison
 
             public ulong SizeInBytes => _data != null ? (ulong)Math.Max(0, _data.Size) : 0;
         }
+
+        /// <summary>
+        /// 将 ManagedCallStackNode 转换为 ComparableTreeNode<ManagedCallStackNodeAdapter>
+        /// </summary>
+        public static List<ComparableTreeNode<ManagedCallStackNodeAdapter>> ConvertManagedObjectsNodes(
+            List<ManagedCallStackNode> treeNodes)
+        {
+            var result = new List<ComparableTreeNode<ManagedCallStackNodeAdapter>>();
+
+            int id = 0;
+            foreach (var node in treeNodes)
+            {
+                var comparableNode = ConvertManagedCallStackNode(node, id++);
+                result.Add(comparableNode);
+            }
+
+            return result;
+        }
+
+        static ComparableTreeNode<ManagedCallStackNodeAdapter> ConvertManagedCallStackNode(ManagedCallStackNode node, int id)
+        {
+            // 适配数据
+            var adapter = new ManagedCallStackNodeAdapter(node);
+
+            // 递归转换子节点
+            var children = new List<ComparableTreeNode<ManagedCallStackNodeAdapter>>();
+            if (node.Children != null)
+            {
+                int childId = 0;
+                foreach (var child in node.Children)
+                {
+                    children.Add(ConvertManagedCallStackNode(child, childId++));
+                }
+            }
+
+            return new ComparableTreeNode<ManagedCallStackNodeAdapter>(id, adapter, children);
+        }
+
+        /// <summary>
+        /// ManagedCallStackNode 的适配器，实现 IComparableItemData 接口
+        /// </summary>
+        public class ManagedCallStackNodeAdapter : IComparableItemData
+        {
+            private readonly ManagedCallStackNode _node;
+
+            public ManagedCallStackNodeAdapter(ManagedCallStackNode node)
+            {
+                _node = node;
+            }
+
+            public string Name => _node?.Description ?? string.Empty;
+
+            public ulong SizeInBytes => _node?.Size ?? 0;
+        }
     }
 }
 

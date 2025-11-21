@@ -2695,6 +2695,8 @@ namespace Unity.MemoryProfiler.Editor
         public EntriesMemoryMapCache EntriesMemoryMap;
         public ProcessedNativeRoots ProcessedNativeRoots;
 
+        public Managed.ManagedAllocationData? ManagedAllocations { get; private set; }
+
         public CachedSnapshot(IFileReader reader)
         {
             unsafe
@@ -2759,7 +2761,7 @@ namespace Unity.MemoryProfiler.Editor
             ManagedDataCrawler.CrawlStepCount
             + EntriesMemoryMapCache.BuildStepCount
             + ProcessedNativeRoots.ProcessStepCount
-            + 1; //final step
+            + 2; //final step + managed allocations loading
 
         public IEnumerator<EnumerationStatus> PostProcess()
         {
@@ -2779,6 +2781,19 @@ namespace Unity.MemoryProfiler.Editor
             processor = ProcessedNativeRoots.ReadOrProcess(this, status);
             while (processor.MoveNext())
                 yield return processor.Current;
+
+            // Load Managed Allocation data (allocHash + stacktrace)
+            var allocHashTask = Managed.ManagedAllocHashReader.ReadAsync(FullPath);
+            var stackTraceTask = Managed.ManagedStackTraceReader.ReadAsync(FullPath);
+            allocHashTask.Wait();
+            stackTraceTask.Wait();
+            ManagedAllocations = new Managed.ManagedAllocationData
+            {
+                AddressToStackHash = allocHashTask.Result,
+                StackHashToCallStack = stackTraceTask.Result
+            };
+            status.IncrementStep("Loaded Managed Allocation Data");
+            yield return status;
         }
 
         public string FullPath

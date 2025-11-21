@@ -66,6 +66,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     public SummaryViewModel SummaryViewModel { get; }
     public UnityObjectsViewModel UnityObjectsViewModel { get; }
     public AllTrackedMemoryViewModel AllTrackedMemoryViewModel { get; }
+    public ManagedObjectsViewModel ManagedObjectsViewModel { get; }
     public ComparisonViewModel ComparisonViewModel { get; }
     public SnapshotManagementViewModel SnapshotManagementViewModel { get; }
 
@@ -87,6 +88,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         SummaryViewModel = new SummaryViewModel();
         UnityObjectsViewModel = new UnityObjectsViewModel();
         AllTrackedMemoryViewModel = new AllTrackedMemoryViewModel();
+        ManagedObjectsViewModel = new ManagedObjectsViewModel();
         ComparisonViewModel = new ComparisonViewModel();
         SnapshotManagementViewModel = new SnapshotManagementViewModel();
 
@@ -94,10 +96,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         {
             new UnityObjectsSelectionDetailsPresenter(),
             new AllTrackedMemorySelectionDetailsPresenter(),
+            new ManagedObjectsSelectionDetailsPresenter(),
             new SummarySelectionDetailsPresenter()
         });
         
         SummaryViewModel.PropertyChanged += OnViewModelPropertyChanged;
+        ManagedObjectsViewModel.PropertyChanged += OnViewModelPropertyChanged;
         SummaryViewModel.InspectRequested += OnSummaryInspectRequested;
         UnityObjectsViewModel.PropertyChanged += OnViewModelPropertyChanged;
         AllTrackedMemoryViewModel.PropertyChanged += OnViewModelPropertyChanged;
@@ -293,9 +297,12 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                     LoadingProgress = 85;
 
                     UnityObjectsViewModel.LoadSnapshot(_currentSnapshot);
-                    LoadingProgress = 90;
+                    LoadingProgress = 88;
 
                     AllTrackedMemoryViewModel.LoadSnapshot(_currentSnapshot);
+                    LoadingProgress = 92;
+
+                    ManagedObjectsViewModel.LoadSnapshot(_currentSnapshot);
                     LoadingProgress = 95;
                 });
             });
@@ -515,6 +522,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
             
             // All Of Memory（已实现）
             AllTrackedMemoryViewModel.CompareSnapshots(snapshotA, snapshotB);
+            
+            // Managed Objects（新增）
+            ManagedObjectsViewModel.CompareSnapshots(snapshotA, snapshotB);
 
             LoadingProgress = 100;
             LoadingStatusText = "对比加载完成！";
@@ -639,6 +649,7 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         SummaryViewModel.Clear();
         UnityObjectsViewModel.Clear();
         AllTrackedMemoryViewModel.Clear();
+        ManagedObjectsViewModel.Clear();
 
         SnapshotPath = string.Empty;
 
@@ -815,6 +826,67 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 SelectionDetailsPanel.ClearSelection();
             }
             // 如果 node == null 但 SelectedBaseNode != null，说明是互斥清空，不处理
+        }
+        // Managed Objects - Detail Node 选择
+        else if (sender is ManagedObjectsViewModel && e.PropertyName == nameof(ManagedObjectsViewModel.SelectedDetailNode))
+        {
+            var node = ManagedObjectsViewModel.SelectedDetailNode;
+            var snapshot = ManagedObjectsViewModel.CurrentSnapshot;
+            
+            System.Diagnostics.Debug.WriteLine($"[ManagedObjects] SelectedDetailNode changed: node={node?.Name}, snapshot={snapshot != null}");
+            
+            if (node != null && snapshot != null)
+            {
+                if (!_selectionDetailsService.TryPresent(SelectionDetailsPanel, node, snapshot, SelectionDetailsSource.ManagedObjects))
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ManagedObjects] TryPresent failed for Detail node: {node.Name}");
+                    SelectionDetailsPanel.ClearSelection();
+                }
+                else
+                {
+                    System.Diagnostics.Debug.WriteLine($"[ManagedObjects] TryPresent succeeded for Detail node: {node.Name}");
+                }
+            }
+            else
+            {
+                SelectionDetailsPanel.ClearSelection();
+            }
+        }
+        // Managed Objects - Base Node 选择（对比模式）
+        else if (sender is ManagedObjectsViewModel && e.PropertyName == nameof(ManagedObjectsViewModel.SelectedBaseNode))
+        {
+            var node = ManagedObjectsViewModel.SelectedBaseNode;
+            var snapshot = ManagedObjectsViewModel.CurrentSnapshot; // Base snapshot
+            
+            if (node != null && snapshot != null)
+            {
+                if (!_selectionDetailsService.TryPresent(SelectionDetailsPanel, node, snapshot, SelectionDetailsSource.ManagedObjects))
+                {
+                    SelectionDetailsPanel.ClearSelection();
+                }
+            }
+            else if (node == null && ManagedObjectsViewModel.SelectedComparedNode == null)
+            {
+                SelectionDetailsPanel.ClearSelection();
+            }
+        }
+        // Managed Objects - Compared Node 选择（对比模式）
+        else if (sender is ManagedObjectsViewModel && e.PropertyName == nameof(ManagedObjectsViewModel.SelectedComparedNode))
+        {
+            var node = ManagedObjectsViewModel.SelectedComparedNode;
+            var snapshot = ManagedObjectsViewModel.ComparedSnapshot; // Compared snapshot
+            
+            if (node != null && snapshot != null)
+            {
+                if (!_selectionDetailsService.TryPresent(SelectionDetailsPanel, node, snapshot, SelectionDetailsSource.ManagedObjects))
+                {
+                    SelectionDetailsPanel.ClearSelection();
+                }
+            }
+            else if (node == null && ManagedObjectsViewModel.SelectedBaseNode == null)
+            {
+                SelectionDetailsPanel.ClearSelection();
+            }
         }
     }
 

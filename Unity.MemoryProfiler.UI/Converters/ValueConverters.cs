@@ -6,6 +6,30 @@ using System.Windows.Data;
 namespace Unity.MemoryProfiler.UI.Converters
 {
     /// <summary>
+    /// 将 bool 转换为字符串（支持参数格式：FalseText|TrueText）
+    /// </summary>
+    public class BoolToStringConverter : IValueConverter
+    {
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            if (value is bool boolValue && parameter is string paramStr)
+            {
+                var parts = paramStr.Split('|');
+                if (parts.Length == 2)
+                {
+                    return boolValue ? parts[1] : parts[0];
+                }
+            }
+            return value?.ToString() ?? string.Empty;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            throw new NotImplementedException();
+        }
+    }
+
+    /// <summary>
     /// 将 null 转换为 Visibility.Visible，非 null 转换为 Visibility.Collapsed
     /// </summary>
     public class NullToVisibilityConverter : IValueConverter

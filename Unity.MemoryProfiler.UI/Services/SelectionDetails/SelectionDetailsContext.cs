@@ -9,6 +9,7 @@ namespace Unity.MemoryProfiler.UI.Services.SelectionDetails
         Unknown = 0,
         UnityObjects,
         AllTrackedMemory,
+        ManagedObjects,
         Summary
     }
 

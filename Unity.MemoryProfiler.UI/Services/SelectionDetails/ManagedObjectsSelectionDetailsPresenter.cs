@@ -1,9 +1,5 @@
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
 using Unity.MemoryProfiler.UI.Controls;
 using Unity.MemoryProfiler.UI.Models;
-using Unity.MemoryProfiler.UI.Services;
 using Unity.MemoryProfiler.Editor;
 using UnityEditor;
 using static Unity.MemoryProfiler.Editor.CachedSnapshot;
@@ -51,26 +47,19 @@ namespace Unity.MemoryProfiler.UI.Services.SelectionDetails
         /// </summary>
         private void PresentGroupNode(SelectionDetailsPanel panel, ManagedObjectDetailNode node)
         {
-            panel.ClearSelection();
-            panel.TitleTextBlock.Text = $"Managed Type: {node.Name}";
+            var adapter = panel.Adapter;
+            
+            adapter.ClearAllGroups();
+            adapter.SetItemName($"Managed Type: {node.Name}");
 
             // 基本信息
-            AddPropertyRow(panel.BasicInfoContent, "Type Name", node.Name);
-            AddPropertyRow(panel.BasicInfoContent, "Object Count", node.Count.ToString());
+            adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, "Type Name", node.Name);
+            adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, "Object Count", node.Count.ToString());
 
             // 内存信息
-            AddPropertyRow(panel.MemoryInfoContent, "Total Size", 
+            adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameMemory, "Total Size", 
                 EditorUtility.FormatBytes((long)node.Size),
                 $"{node.Size:N0} B\n\nTotal size of all objects of this type");
-
-            // 显示/隐藏Expander
-            panel.BasicInfoExpander.Visibility = Visibility.Visible;
-            panel.MemoryInfoExpander.Visibility = Visibility.Visible;
-            panel.AdvancedInfoExpander.Visibility = Visibility.Collapsed;
-
-            // 显示详情内容
-            panel.NoSelectionMessage.Visibility = Visibility.Collapsed;
-            panel.DetailsContent.Visibility = Visibility.Visible;
             
             panel.HideReferences();
         }
@@ -90,11 +79,12 @@ namespace Unity.MemoryProfiler.UI.Services.SelectionDetails
                 
                 builder.SetSelection(source, node.Name, "Managed Object");
                 panel.SetupReferences(source);
-                return;
             }
-
-            // 如果没有 Builder，显示基本信息
-            PresentBasicInfo(panel, node);
+            else
+            {
+                // 如果没有 Builder，显示基本信息
+                PresentBasicInfo(panel, node);
+            }
         }
 
         /// <summary>
@@ -102,64 +92,26 @@ namespace Unity.MemoryProfiler.UI.Services.SelectionDetails
         /// </summary>
         private void PresentBasicInfo(SelectionDetailsPanel panel, ManagedObjectDetailNode node)
         {
-            panel.ClearSelection();
-            panel.TitleTextBlock.Text = $"Managed Object: {node.Name}";
+            var adapter = panel.Adapter;
             
-            AddPropertyRow(panel.BasicInfoContent, "Name", node.Name);
-            AddPropertyRow(panel.MemoryInfoContent, "Size", 
+            adapter.ClearAllGroups();
+            adapter.SetItemName($"Managed Object: {node.Name}");
+            
+            // 基本信息
+            adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, "Name", node.Name);
+            
+            // 内存信息
+            adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameMemory, "Size", 
                 EditorUtility.FormatBytes((long)node.Size),
                 $"{node.Size:N0} B");
             
+            // 高级信息
             if (node.Address > 0)
             {
-                AddPropertyRow(panel.AdvancedInfoContent, "Address", $"0x{node.Address:X}");
+                adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameAdvanced, "Address", $"0x{node.Address:X}");
             }
-
-            panel.BasicInfoExpander.Visibility = Visibility.Visible;
-            panel.MemoryInfoExpander.Visibility = Visibility.Visible;
-            panel.AdvancedInfoExpander.Visibility = node.Address > 0 ? Visibility.Visible : Visibility.Collapsed;
-            panel.NoSelectionMessage.Visibility = Visibility.Collapsed;
-            panel.DetailsContent.Visibility = Visibility.Visible;
             
             panel.HideReferences();
-        }
-
-        /// <summary>
-        /// 添加属性行（标签+值）
-        /// 参考: SelectionDetailsPanel.AddPropertyRow
-        /// </summary>
-        private void AddPropertyRow(Panel parent, string label, string value, string tooltip = null)
-        {
-            var grid = new Grid { Margin = new Thickness(0, 3, 0, 3) };
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(120) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-
-            var labelBlock = new TextBlock
-            {
-                Text = label + ":",
-                FontWeight = FontWeights.SemiBold,
-                Foreground = new SolidColorBrush(Color.FromRgb(102, 102, 102)),
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            Grid.SetColumn(labelBlock, 0);
-            grid.Children.Add(labelBlock);
-
-            var valueBlock = new TextBlock
-            {
-                Text = value,
-                TextWrapping = TextWrapping.Wrap,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-
-            if (!string.IsNullOrEmpty(tooltip))
-            {
-                valueBlock.ToolTip = tooltip;
-            }
-
-            Grid.SetColumn(valueBlock, 1);
-            grid.Children.Add(valueBlock);
-
-            parent.Children.Add(grid);
         }
     }
 }

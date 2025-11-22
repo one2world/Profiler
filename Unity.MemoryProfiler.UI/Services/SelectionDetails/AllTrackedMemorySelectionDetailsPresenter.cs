@@ -24,11 +24,12 @@ namespace Unity.MemoryProfiler.UI.Services.SelectionDetails
                 var description = CategoryDescriptions.GetDescription(node.Category);
                 builder.SetSelection(node.Source, node.Name, description, node.ChildCount);
                 panel.SetupReferences(node.Source);
-                return;
             }
-
-            panel.ShowAllTrackedMemoryDetails(node);
-            panel.HideReferences();
+            else
+            {
+                panel.ClearSelection();
+                panel.HideReferences();
+            }
         }
     }
 }

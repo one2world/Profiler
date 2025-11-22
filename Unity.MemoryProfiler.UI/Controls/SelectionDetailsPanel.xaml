@@ -4,8 +4,10 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:local="clr-namespace:Unity.MemoryProfiler.UI.Controls"
+             xmlns:vm="clr-namespace:Unity.MemoryProfiler.UI.ViewModels.SelectionDetails"
              mc:Ignorable="d" 
              d:DesignHeight="600" d:DesignWidth="350"
+             d:DataContext="{d:DesignInstance Type=vm:SelectionDetailsViewModel}"
              Background="White">
     <UserControl.Resources>
         <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
@@ -26,44 +28,29 @@
             <Setter Property="TextWrapping" Value="Wrap"/>
             <Setter Property="VerticalAlignment" Value="Top"/>
         </Style>
-        <Style x:Key="ExpanderHeaderStyle" TargetType="ToggleButton">
-            <Setter Property="Template">
-                <Setter.Value>
-                    <ControlTemplate TargetType="ToggleButton">
-                        <Border Background="Transparent">
-                            <Grid>
-                                <Grid.ColumnDefinitions>
-                                    <ColumnDefinition Width="Auto"/>
-                                    <ColumnDefinition Width="*"/>
-                                </Grid.ColumnDefinitions>
-                                <Path x:Name="Arrow"
-                                      Grid.Column="0"
-                                      Data="M 0 0 L 4 4 L 0 8 Z"
-                                      Fill="#666666"
-                                      VerticalAlignment="Center"
-                                      Margin="5,0,5,0"/>
-                                <ContentPresenter Grid.Column="1" VerticalAlignment="Center"/>
-                            </Grid>
-                        </Border>
-                        <ControlTemplate.Triggers>
-                            <Trigger Property="IsChecked" Value="True">
-                                <Setter TargetName="Arrow" Property="Data" Value="M 0 0 L 8 0 L 4 4 Z"/>
-                            </Trigger>
-                            <Trigger Property="IsMouseOver" Value="True">
-                                <Setter TargetName="Arrow" Property="Fill" Value="#333333"/>
-                            </Trigger>
-                        </ControlTemplate.Triggers>
-                    </ControlTemplate>
-                </Setter.Value>
-            </Setter>
-        </Style>
+        
+        <!-- PropertyItem DataTemplate -->
+        <DataTemplate x:Key="PropertyItemTemplate">
+            <Grid Margin="0,3">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="120"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding Label}" 
+                           Style="{StaticResource PropertyLabelStyle}"
+                           ToolTip="{Binding Tooltip}"/>
+                <TextBlock Grid.Column="1" 
+                           Text="{Binding Value}"
+                           Style="{StaticResource PropertyValueStyle}"
+                           ToolTip="{Binding Tooltip}"/>
+            </Grid>
+        </DataTemplate>
     </UserControl.Resources>
 
     <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
         <StackPanel Margin="15">
             <!-- 标题区域 -->
-            <TextBlock x:Name="TitleTextBlock" 
-                       Text="No Selection" 
+            <TextBlock Text="{Binding Title}" 
                        FontSize="16" 
                        FontWeight="Bold" 
                        TextWrapping="Wrap"
@@ -71,56 +58,148 @@
                        Margin="0,0,0,15"/>
 
             <!-- 无选择时的提示 -->
-            <TextBlock x:Name="NoSelectionMessage"
-                       Text="Select an item in the table to view its details here."
+            <TextBlock Text="Select an item in the table to view its details here."
                        Foreground="Gray"
                        FontStyle="Italic"
                        TextWrapping="Wrap"
-                       Visibility="Visible"/>
+                       Visibility="{Binding NoSelectionMessageVisibility}"/>
 
             <!-- 详情内容容器 -->
-            <StackPanel x:Name="DetailsContent" Visibility="Collapsed">
+            <StackPanel Visibility="{Binding DetailsContentVisibility}">
                 
                 <!-- 基本信息组 -->
-                <Expander x:Name="BasicInfoExpander" IsExpanded="True" Margin="0,5,0,10">
+                <Expander IsExpanded="True" 
+                          Margin="0,5,0,10"
+                          Visibility="{Binding BasicInfo.Visibility}">
                     <Expander.HeaderTemplate>
                         <DataTemplate>
                             <TextBlock Text="Basic Information" Style="{StaticResource SectionHeaderStyle}"/>
                         </DataTemplate>
                     </Expander.HeaderTemplate>
-                    <StackPanel x:Name="BasicInfoContent" Margin="10,5,0,5"/>
+                    <ItemsControl ItemsSource="{Binding BasicInfo.Properties}"
+                                  ItemTemplate="{StaticResource PropertyItemTemplate}"
+                                  Margin="10,5,0,5"/>
                 </Expander>
 
                 <!-- 内存信息组 -->
-                <Expander x:Name="MemoryInfoExpander" IsExpanded="True" Margin="0,5,0,10">
+                <Expander IsExpanded="True" 
+                          Margin="0,5,0,10"
+                          Visibility="{Binding MemoryInfo.Visibility}">
                     <Expander.HeaderTemplate>
                         <DataTemplate>
                             <TextBlock Text="Memory Information" Style="{StaticResource SectionHeaderStyle}"/>
                         </DataTemplate>
                     </Expander.HeaderTemplate>
-                    <StackPanel x:Name="MemoryInfoContent" Margin="10,5,0,5"/>
+                    <ItemsControl ItemsSource="{Binding MemoryInfo.Properties}"
+                                  ItemTemplate="{StaticResource PropertyItemTemplate}"
+                                  Margin="10,5,0,5"/>
                 </Expander>
 
                 <!-- 描述信息组 -->
-                <Expander x:Name="DescriptionExpander" IsExpanded="False" Margin="0,5,0,10">
+                <Expander IsExpanded="False" 
+                          Margin="0,5,0,10"
+                          Visibility="{Binding Description.Visibility}">
                     <Expander.HeaderTemplate>
                         <DataTemplate>
                             <TextBlock Text="Description" Style="{StaticResource SectionHeaderStyle}"/>
                         </DataTemplate>
                     </Expander.HeaderTemplate>
-                    <TextBlock x:Name="DescriptionText" 
+                    <TextBlock Text="{Binding Description.Text}" 
                                Style="{StaticResource PropertyValueStyle}"
                                Margin="10,5,0,5"/>
                 </Expander>
 
+                <!-- 元数据组 -->
+                <Expander IsExpanded="False" 
+                          Margin="0,5,0,10"
+                          Visibility="{Binding MetaData.Visibility}">
+                    <Expander.HeaderTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="MetaData" Style="{StaticResource SectionHeaderStyle}"/>
+                        </DataTemplate>
+                    </Expander.HeaderTemplate>
+                    <ItemsControl ItemsSource="{Binding MetaData.Properties}"
+                                  ItemTemplate="{StaticResource PropertyItemTemplate}"
+                                  Margin="10,5,0,5"/>
+                </Expander>
+
+                <!-- 帮助组 -->
+                <Expander IsExpanded="True" 
+                          Margin="0,5,0,10"
+                          Visibility="{Binding Help.Visibility}">
+                    <Expander.HeaderTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="Help" Style="{StaticResource SectionHeaderStyle}"/>
+                        </DataTemplate>
+                    </Expander.HeaderTemplate>
+                    <ItemsControl ItemsSource="{Binding Help.Properties}"
+                                  ItemTemplate="{StaticResource PropertyItemTemplate}"
+                                  Margin="10,5,0,5"/>
+                </Expander>
+
                 <!-- 高级信息组 -->
-                <Expander x:Name="AdvancedInfoExpander" IsExpanded="False" Margin="0,5,0,10">
+                <Expander IsExpanded="False" 
+                          Margin="0,5,0,10"
+                          Visibility="{Binding AdvancedInfo.Visibility}">
                     <Expander.HeaderTemplate>
                         <DataTemplate>
                             <TextBlock Text="Advanced" Style="{StaticResource SectionHeaderStyle}"/>
                         </DataTemplate>
                     </Expander.HeaderTemplate>
-                    <StackPanel x:Name="AdvancedInfoContent" Margin="10,5,0,5"/>
+                    <ItemsControl ItemsSource="{Binding AdvancedInfo.Properties}"
+                                  ItemTemplate="{StaticResource PropertyItemTemplate}"
+                                  Margin="10,5,0,5"/>
+                </Expander>
+
+                <!-- 调用堆栈组 -->
+                <Expander IsExpanded="True" 
+                          Margin="0,5,0,10"
+                          Visibility="{Binding CallStacks.Visibility}">
+                    <Expander.HeaderTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="Call Stack Info" Style="{StaticResource SectionHeaderStyle}"/>
+                        </DataTemplate>
+                    </Expander.HeaderTemplate>
+                    <StackPanel Margin="10,5,0,5">
+                        <!-- Copy 按钮 -->
+                        <Button Content="Copy Call Stack"
+                                Command="{Binding CallStacks.CopyCommand}"
+                                Padding="10,5"
+                                Margin="0,5"/>
+                        
+                        <!-- 计数 -->
+                        <Grid Margin="0,3">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="120"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="Call Stacks:" Style="{StaticResource PropertyLabelStyle}"/>
+                            <TextBlock Grid.Column="1" 
+                                       Text="{Binding CallStacks.CallStackCount}"
+                                       Style="{StaticResource PropertyValueStyle}"/>
+                        </Grid>
+                        
+                        <!-- Toggle 开关 -->
+                        <CheckBox Content="Clickable Call Stacks"
+                                  IsChecked="{Binding CallStacks.ClickableCallStacks}"
+                                  Margin="0,5"
+                                  ToolTip="Call Stacks can either be clickable (leading to the source file) or selectable. Toggle this off if you want them to be selectable.&#x0a;Note: File jumping is not available in WPF version."/>
+                        
+                        <CheckBox Content="Show Address in Call Stacks"
+                                  IsChecked="{Binding CallStacks.ShowAddress}"
+                                  Margin="0,5"
+                                  ToolTip="Show or hide Address in Call Stacks."/>
+                        
+                        <!-- 堆栈内容 -->
+                        <Expander Header="Allocation Call Stack" 
+                                  IsExpanded="False"
+                                  Margin="0,5">
+                            <TextBlock Text="{Binding CallStacks.CallStackText}"
+                                       TextWrapping="Wrap"
+                                       FontFamily="Consolas"
+                                       Margin="10,5"/>
+                        </Expander>
+                    </StackPanel>
                 </Expander>
 
                 <!-- Managed对象检查器组 -->
@@ -157,4 +236,3 @@
         </StackPanel>
     </ScrollViewer>
 </UserControl>
-

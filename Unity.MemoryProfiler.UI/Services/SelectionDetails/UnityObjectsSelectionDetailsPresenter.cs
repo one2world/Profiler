@@ -23,11 +23,12 @@ namespace Unity.MemoryProfiler.UI.Services.SelectionDetails
                 panel.ClearSelection();
                 builder.SetSelection(node.Source);
                 panel.SetupReferences(node.Source);
-                return;
             }
-
-            panel.ShowUnityObjectDetails(node);
-            panel.HideReferences();
+            else
+            {
+                panel.ClearSelection();
+                panel.HideReferences();
+            }
         }
     }
 }

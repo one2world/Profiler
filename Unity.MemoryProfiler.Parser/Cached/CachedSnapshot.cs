@@ -2994,6 +2994,11 @@ namespace Unity.MemoryProfiler.Editor
                 SortedNativeObjects.Dispose();
 
                 ProcessedNativeRoots.Dispose();
+                
+                // Dispose ManagedAllocations (Managed Objects 功能新增的资源)
+                // ManagedAllocationData 是纯托管对象，设为 null 让 GC 回收
+                ManagedAllocations = null;
+                
                 // Close and dispose the reader
                 m_Reader.Close();
             }

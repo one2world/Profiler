@@ -24,7 +24,12 @@ namespace Unity.MemoryProfiler.UI;
 public partial class MainWindow : Window, INotifyPropertyChanged
 {
     private string _snapshotPath = "";
-    private CachedSnapshot? _currentSnapshot;
+    
+    // 快照所有权管理（方案 B：MainWindow 拥有所有快照的所有权）
+    private CachedSnapshot? _currentSnapshot;        // 单快照模式
+    private CachedSnapshot? _comparedSnapshotA;      // 对比模式 - Base (A)
+    private CachedSnapshot? _comparedSnapshotB;      // 对比模式 - Compared (B)
+    
     private bool _isLoading;
     private double _loadingProgress;
     private string _loadingStatusText = "";
@@ -205,9 +210,9 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 }
             });
 
-            // 清理旧快照
-            _currentSnapshot?.Dispose();
-            _currentSnapshot = null;
+            // 🔑 关键修复：在加载新快照前，先释放所有旧快照
+            // 这确保了从对比模式切换到单快照模式时，对比快照会被正确释放
+            DisposeAllSnapshots();
 
             // 阶段1：打开文件 (0-20%)
             LoadingStatusText = "正在打开快照文件...";
@@ -342,7 +347,10 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     protected override void OnClosed(EventArgs e)
     {
         base.OnClosed(e);
-        _currentSnapshot?.Dispose();
+        
+        // 🔑 关键修复：窗口关闭时释放所有快照
+        // 确保应用程序退出时所有资源都被正确释放
+        DisposeAllSnapshots();
     }
 
     /// <summary>
@@ -403,6 +411,13 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     /// </summary>
     private async Task CompareSnapshotsInternalAsync(string snapshotPathA, string snapshotPathB)
     {
+        // 🔑 关键修复：在加载新快照前，先释放所有旧快照
+        // 这确保了从单快照模式切换到对比模式，或重新对比时，旧快照会被正确释放
+        DisposeAllSnapshots();
+
+        // 🔑 关键：在 try 外部定义，以便在 catch 块中访问
+        CachedSnapshot? snapshotA = null;
+        CachedSnapshot? snapshotB = null;
 
         try
         {
@@ -427,9 +442,6 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                     });
                 }
             });
-
-            CachedSnapshot? snapshotA = null;
-            CachedSnapshot? snapshotB = null;
 
             // 阶段1：加载快照A (0-45%)
             LoadingStatusText = $"正在加载快照A: {Path.GetFileName(snapshotPathA)}";
@@ -509,22 +521,28 @@ public partial class MainWindow : Window, INotifyPropertyChanged
                 Dispatcher.Invoke(() => LoadingProgress = 90);
             }, _loadingCancellationTokenSource.Token);
 
-            // 阶段3：通知各ViewModel切换到对比模式 (90-100%)
+            // 阶段3：保存快照引用并通知各ViewModel切换到对比模式 (90-100%)
             LoadingStatusText = "正在构建对比数据...";
             LoadingProgress = 90;
 
+            // 🔑 关键修复：MainWindow 获得快照所有权
+            // 保存到成员变量，确保快照不会被 GC 回收，且可以在需要时正确释放
+            _comparedSnapshotA = snapshotA;
+            _comparedSnapshotB = snapshotB;
+
             // ✅ 正确的架构：通知所有ViewModel切换到对比模式（而不是创建独立ComparisonTab）
+            // ViewModel 只持有只读引用，不负责释放
             // Summary（已实现）
-            SummaryViewModel.CompareSnapshots(snapshotA, snapshotB);
+            SummaryViewModel.CompareSnapshots(_comparedSnapshotA, _comparedSnapshotB);
             
             // Unity Objects（已实现）
-            UnityObjectsViewModel.CompareSnapshots(snapshotA, snapshotB);
+            UnityObjectsViewModel.CompareSnapshots(_comparedSnapshotA, _comparedSnapshotB);
             
             // All Of Memory（已实现）
-            AllTrackedMemoryViewModel.CompareSnapshots(snapshotA, snapshotB);
+            AllTrackedMemoryViewModel.CompareSnapshots(_comparedSnapshotA, _comparedSnapshotB);
             
             // Managed Objects（新增）
-            ManagedObjectsViewModel.CompareSnapshots(snapshotA, snapshotB);
+            ManagedObjectsViewModel.CompareSnapshots(_comparedSnapshotA, _comparedSnapshotB);
 
             LoadingProgress = 100;
             LoadingStatusText = "对比加载完成！";
@@ -547,11 +565,25 @@ public partial class MainWindow : Window, INotifyPropertyChanged
         catch (OperationCanceledException)
         {
             Console.WriteLine("[提示] 快照对比已取消。");
+            
+            // 🔑 关键修复：异常时释放已创建的快照
+            // 如果加载过程中取消，需要释放已经创建的快照
+            snapshotA?.Dispose();
+            snapshotB?.Dispose();
+            _comparedSnapshotA = null;
+            _comparedSnapshotB = null;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[错误] 对比快照时出错: {ex.Message}");
             Console.WriteLine($"堆栈跟踪:\n{ex.StackTrace}");
+            
+            // 🔑 关键修复：异常时释放已创建的快照
+            // 如果加载失败，需要释放已经创建的快照
+            snapshotA?.Dispose();
+            snapshotB?.Dispose();
+            _comparedSnapshotA = null;
+            _comparedSnapshotB = null;
         }
         finally
         {
@@ -657,18 +689,45 @@ public partial class MainWindow : Window, INotifyPropertyChanged
     }
 
     /// <summary>
+    /// 释放所有快照资源（统一释放方法）
+    /// 参考 Unity 的 SnapshotDataService.UnloadSnapshot 模式
+    /// </summary>
+    private void DisposeAllSnapshots()
+    {
+        // 释放单快照模式的快照
+        if (_currentSnapshot != null)
+        {
+            Console.WriteLine($"[MainWindow] 释放单快照: {_currentSnapshot.FullPath}");
+            _currentSnapshot.Dispose();
+            _currentSnapshot = null;
+        }
+
+        // 释放对比模式的快照 A
+        if (_comparedSnapshotA != null)
+        {
+            Console.WriteLine($"[MainWindow] 释放对比快照 A: {_comparedSnapshotA.FullPath}");
+            _comparedSnapshotA.Dispose();
+            _comparedSnapshotA = null;
+        }
+
+        // 释放对比模式的快照 B
+        if (_comparedSnapshotB != null)
+        {
+            Console.WriteLine($"[MainWindow] 释放对比快照 B: {_comparedSnapshotB.FullPath}");
+            _comparedSnapshotB.Dispose();
+            _comparedSnapshotB = null;
+        }
+    }
+
+    /// <summary>
     /// 关闭当前快照（从工具栏Close按钮触发）
     /// </summary>
     private void CloseSnapshot()
     {
         Console.WriteLine("[MainWindow] 从工具栏关闭快照");
 
-        // 释放CachedSnapshot
-        if (_currentSnapshot != null)
-        {
-            _currentSnapshot.Dispose();
-            _currentSnapshot = null;
-        }
+        // 释放所有 CachedSnapshot
+        DisposeAllSnapshots();
 
         // 清空所有视图
         ClearAllViews();

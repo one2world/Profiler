@@ -82,6 +82,7 @@ namespace Unity.MemoryProfiler.UI.Controls
 
         /// <summary>
         /// 设置标题 - ObjectData + UnifiedType版本
+        /// 参考: Unity.MemoryProfiler.Editor.UI.SelectedItemDetailsPanel.SetItemName(ObjectData, UnifiedType)
         /// </summary>
         internal void SetItemName(ObjectData objectData, UnifiedType type)
         {
@@ -91,9 +92,27 @@ namespace Unity.MemoryProfiler.UI.Controls
                 return;
             }
 
-            // TODO: 需要访问 CachedSnapshot 来生成类型名
-            // 暂时使用简化版本
-            string displayName = "Object";
+            // 获取当前快照
+            var snapshot = _panel.CurrentSnapshot;
+
+            // 根据数据类型生成标题
+            string displayName;
+            if (objectData.isManaged && snapshot != null)
+            {
+                // 对于Managed对象，显示地址 + 类型名
+                displayName = $"Managed Object: 0x{objectData.hostManagedObjectPtr:X} ({objectData.GenerateTypeName(snapshot, false)})";
+            }
+            else if (snapshot != null)
+            {
+                displayName = objectData.GenerateTypeName(snapshot, false) ?? "Unknown Object";
+            }
+            else
+            {
+                // 如果没有 snapshot，使用 UnifiedType 参数作为回退
+                displayName = type.HasManagedType ? type.ManagedTypeName : 
+                              type.HasNativeType ? type.NativeTypeName : "Object";
+            }
+
             SetItemName(displayName);
         }
 

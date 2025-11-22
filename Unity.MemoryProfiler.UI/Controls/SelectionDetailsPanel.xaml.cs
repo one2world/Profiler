@@ -21,6 +21,11 @@ namespace Unity.MemoryProfiler.UI.Controls
         public SelectionDetailsViewModel ViewModel { get; }
 
         /// <summary>
+        /// 当前快照（供适配器使用）
+        /// </summary>
+        internal CachedSnapshot? CurrentSnapshot => m_Snapshot;
+
+        /// <summary>
         /// 适配器（用于向后兼容旧 API）
         /// </summary>
         public SelectionDetailsPanelAdapter Adapter { get; }

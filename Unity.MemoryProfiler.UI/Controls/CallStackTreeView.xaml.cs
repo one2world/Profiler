@@ -70,6 +70,9 @@ namespace Unity.MemoryProfiler.UI.Controls
             if (_sourceDirectories == null || _sourceDirectories.Count == 0)
                 return;
 
+            // 获取 VS Code 路径（优先使用配置）
+            var vscodeExecutable = Services.ManagedObjectsConfigService.GetVSCodePath();
+
             // 尝试在源码目录中查找文件
             foreach (var sourceDir in _sourceDirectories)
             {
@@ -81,7 +84,7 @@ namespace Unity.MemoryProfiler.UI.Controls
                     {
                         var startInfo = new ProcessStartInfo
                         {
-                            FileName = "code",
+                            FileName = vscodeExecutable,
                             Arguments = $"--goto \"{fullPath}:{lineNumber}\"",
                             UseShellExecute = false,
                             CreateNoWindow = true

@@ -7,11 +7,12 @@ namespace Unity.MemoryProfiler.UI.Services
 {
     /// <summary>
     /// Managed Objects 配置服务
-    /// 从 appsettings.json 读取源码目录列表
+    /// 从 appsettings.json 读取源码目录列表和 VS Code 路径
     /// </summary>
     public static class ManagedObjectsConfigService
     {
         private static List<string>? _cachedSourceDirectories;
+        private static string? _cachedVSCodePath;
         private static DateTime _lastLoadTime = DateTime.MinValue;
 
         /// <summary>
@@ -86,11 +87,81 @@ namespace Unity.MemoryProfiler.UI.Services
         }
 
         /// <summary>
+        /// 获取 VS Code 可执行文件路径
+        /// </summary>
+        public static string GetVSCodePath()
+        {
+            var configPath = GetConfigFilePath();
+            
+            // 使用缓存
+            if (_cachedVSCodePath != null && File.Exists(configPath))
+            {
+                var lastWriteTime = File.GetLastWriteTime(configPath);
+                if (lastWriteTime <= _lastLoadTime)
+                {
+                    return _cachedVSCodePath;
+                }
+            }
+
+            var defaultPath = "code"; // 默认值
+
+            if (File.Exists(configPath))
+            {
+                try
+                {
+                    var jsonString = File.ReadAllText(configPath);
+                    
+                    // 移除 JSON 注释
+                    var lines = jsonString.Split('\n');
+                    var cleanedLines = new List<string>();
+                    foreach (var line in lines)
+                    {
+                        var trimmed = line.Trim();
+                        if (trimmed.StartsWith("//"))
+                            continue;
+                        
+                        var commentIndex = line.IndexOf("//");
+                        if (commentIndex >= 0)
+                            cleanedLines.Add(line.Substring(0, commentIndex));
+                        else
+                            cleanedLines.Add(line);
+                    }
+                    var cleanedJson = string.Join("\n", cleanedLines);
+                    
+                    using var document = JsonDocument.Parse(cleanedJson);
+                    var root = document.RootElement;
+                    
+                    if (root.TryGetProperty("ManagedObjects", out var managedObjects))
+                    {
+                        if (managedObjects.TryGetProperty("VSCodePath", out var vscodePath))
+                        {
+                            var path = vscodePath.GetString();
+                            if (!string.IsNullOrWhiteSpace(path))
+                            {
+                                _cachedVSCodePath = path;
+                                _lastLoadTime = File.GetLastWriteTime(configPath);
+                                return path;
+                            }
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Failed to read VSCodePath from config: {ex.Message}");
+                }
+            }
+
+            _cachedVSCodePath = defaultPath;
+            return defaultPath;
+        }
+
+        /// <summary>
         /// 重新加载配置
         /// </summary>
         public static void ReloadConfig()
         {
             _cachedSourceDirectories = null;
+            _cachedVSCodePath = null;
             _lastLoadTime = DateTime.MinValue;
         }
 

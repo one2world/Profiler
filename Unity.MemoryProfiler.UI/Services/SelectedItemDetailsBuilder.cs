@@ -23,6 +23,7 @@ namespace Unity.MemoryProfiler.UI.Services
         // 核心依赖
         private CachedSnapshot m_CachedSnapshot;
         private SelectionDetailsPanel m_UI;
+        private SelectionDetailsPanelAdapter m_Adapter;
         private ManagedFieldsBuilder m_FieldsBuilder;
 
         // 常量 (参考Unity)
@@ -41,6 +42,7 @@ namespace Unity.MemoryProfiler.UI.Services
         {
             m_CachedSnapshot = snapshot;
             m_UI = detailsUI;
+            m_Adapter = detailsUI.Adapter;
             m_FieldsBuilder = new ManagedFieldsBuilder(snapshot);
         }
 
@@ -52,7 +54,7 @@ namespace Unity.MemoryProfiler.UI.Services
         public void SetSelection(SourceIndex source, string fallbackName = null, string fallbackDescription = null, long childCount = -1)
         {
             // 清空所有分组内容，避免重复添加元素
-            m_UI.ClearAllGroups();
+            m_Adapter.ClearAllGroups();
 
             m_CurrentSelectionObjectData = ObjectData.FromSourceLink(m_CachedSnapshot, source);
             var type = new UnifiedType(m_CachedSnapshot, m_CurrentSelectionObjectData);
@@ -101,30 +103,30 @@ namespace Unity.MemoryProfiler.UI.Services
                 return;
 
             // 设置标题 (Line 67)
-            m_UI.SetItemName(type);
+            m_Adapter.SetItemName(type);
 
             // 如果有Managed类型数据且不是基类型回退，显示静态字段检查器 (Line 69-70)
             if (type.ManagedTypeData.IsValid && !type.ManagedTypeIsBaseTypeFallback)
             {
                 var fields = m_FieldsBuilder.BuildFieldsTree(type.ManagedTypeData);
-                m_UI.SetupManagedObjectInspector(fields);
+                m_Adapter.SetupManagedObjectInspector(fields);
             }
 
             // 设置描述 (Line 72)
-            m_UI.SetDescription("The selected item is a Type.");
+            m_Adapter.SetDescription("The selected item is a Type.");
 
             // 清空现有内容
-            m_UI.ClearGroup(SelectionDetailsPanel.GroupNameBasic);
+            m_Adapter.ClearGroup(SelectionDetailsPanelAdapter.GroupNameBasic);
             
             // 添加类型信息到Basic分组 (Line 74-77)
             if (type.HasManagedType)
             {
-                m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, "Managed Type", type.ManagedTypeName);
+                m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, "Managed Type", type.ManagedTypeName);
             }
             
             if (type.HasNativeType)
             {
-                m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, "Native Type", type.NativeTypeName);
+                m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, "Native Type", type.NativeTypeName);
             }
 
         }
@@ -165,14 +167,14 @@ namespace Unity.MemoryProfiler.UI.Services
         private void HandlePureCSharpObjectDetails(UnifiedType type)
         {
             // Line 320: 设置标题
-            m_UI.SetItemName(m_CurrentSelectionObjectData, type);
+            m_Adapter.SetItemName(m_CurrentSelectionObjectData, type);
 
             // Line 322-324: 显示Managed Size
             var managedObjectInfo = m_CurrentSelectionObjectData.GetManagedObject(m_CachedSnapshot);
             var managedSize = managedObjectInfo.Size;
             
-            m_UI.ClearGroup(SelectionDetailsPanel.GroupNameBasic);
-            m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, "Managed Size", 
+            m_Adapter.ClearGroup(SelectionDetailsPanelAdapter.GroupNameBasic);
+            m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, "Managed Size", 
                 EditorUtility.FormatBytes(managedSize), 
                 $"{managedSize:N0} B");
 
@@ -180,11 +182,11 @@ namespace Unity.MemoryProfiler.UI.Services
             if (m_CurrentSelectionObjectData.dataType == ObjectDataType.Array)
             {
                 var arrayInfo = m_CurrentSelectionObjectData.GetArrayInfo(m_CachedSnapshot);
-                m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, "Length", arrayInfo.Length.ToString());
+                m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, "Length", arrayInfo.Length.ToString());
                 
                 if (arrayInfo.Rank.Length > 1)
                 {
-                    m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, "Rank", 
+                    m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, "Rank", 
                         m_CurrentSelectionObjectData.GenerateArrayDescription(m_CachedSnapshot, includeTypeName: false));
                     
                     // 检测零维度数组（潜在逻辑错误）
@@ -192,7 +194,7 @@ namespace Unity.MemoryProfiler.UI.Services
                     {
                         if (arrayInfo.Rank[i] == 0)
                         {
-                            m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, "Potential Logic Flaw?", 
+                            m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, "Potential Logic Flaw?", 
                                 "This multidimensional array has a zero sized dimension and therefore no elements. Is this intended?");
                             break;
                         }
@@ -203,26 +205,26 @@ namespace Unity.MemoryProfiler.UI.Services
             else if (type.ManagedTypeIndex == m_CachedSnapshot.TypeDescriptions.ITypeString)
             {
                 var str = Unity.MemoryProfiler.Editor.StringTools.ReadString(managedObjectInfo.data, out var fullLength, m_CachedSnapshot.VirtualMachineInformation);
-                m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, "Length", fullLength.ToString());
-                m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, "String Value", 
+                m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, "Length", fullLength.ToString());
+                m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, "String Value", 
                     $"\"{str}\"", 
                     options: DynamicElementOptions.PlaceFirstInGroup | DynamicElementOptions.SelectableLabel);
             }
 
             // Line 348: 显示Referenced By (引用计数)
-            m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, "Referenced By", managedObjectInfo.RefCount.ToString());
+            m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, "Referenced By", managedObjectInfo.RefCount.ToString());
 
             // Line 349: 设置Managed对象检查器
             var managedFields = m_FieldsBuilder.BuildFieldsTree(m_CurrentSelectionObjectData);
-            m_UI.SetupManagedObjectInspector(managedFields);
+            m_Adapter.SetupManagedObjectInspector(managedFields);
 
             // Line 351-396: GCHandle存活性分析（复杂的三种状态检测）
             HandleGCHandleLivenessAnalysis(managedObjectInfo);
 
             // Line 398-399: 显示Managed Address
-            m_UI.ClearGroup(SelectionDetailsPanel.GroupNameAdvanced);
+            m_Adapter.ClearGroup(SelectionDetailsPanelAdapter.GroupNameAdvanced);
             var objectAddress = m_CurrentSelectionObjectData.GetObjectPointer(m_CachedSnapshot, false);
-            m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameAdvanced, "Managed Address", 
+            m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameAdvanced, "Managed Address", 
                 Unity.MemoryProfiler.Editor.DetailFormatter.FormatPointer(objectAddress));
 
         }
@@ -250,14 +252,14 @@ namespace Unity.MemoryProfiler.UI.Services
                 // 状态1: Used By Native Code
                 if (m_CachedSnapshot.CrawledData.IndicesOfManagedObjectsHeldByRequiredByNativeCodeAttribute.Contains(managedObjectInfo.ManagedObjectIndex))
                 {
-                    m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, k_StatusLabelText, 
+                    m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, k_StatusLabelText, 
                         TextContent.UsedByNativeCodeStatus, 
                         TextContent.UsedByNativeCodeHint);
                 }
                 // 状态2: Held By GCHandle (非UnityObject相关)
                 else if (m_CachedSnapshot.CrawledData.IndicesOfManagedObjectsHeldByNonNativeObjectRelatedGCHandle.Contains(managedObjectInfo.ManagedObjectIndex))
                 {
-                    m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, k_StatusLabelText, 
+                    m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, k_StatusLabelText, 
                         TextContent.HeldByGCHandleStatus, 
                         TextContent.HeldByGCHandleHint);
                 }
@@ -278,14 +280,14 @@ namespace Unity.MemoryProfiler.UI.Services
                     if (heldByGCHandle)
                     {
                         // 被UnityObject相关的GCHandle持有
-                        m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, k_StatusLabelText, 
+                        m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, k_StatusLabelText, 
                             TextContent.UnityObjectHeldByGCHandleStatus, 
                             TextContent.HeldByGCHandleHint);
                     }
                     else
                     {
                         // 真正的未知原因 - 可能是Managed Crawler的Bug
-                        m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, k_StatusLabelText, 
+                        m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, k_StatusLabelText, 
                             TextContent.UnkownLivenessReasonStatus, 
                             TextContent.UnkownLivenessReasonHint);
                     }
@@ -300,7 +302,7 @@ namespace Unity.MemoryProfiler.UI.Services
         private void HandleUnityObjectDetails(UnifiedUnityObjectInfo selectedUnityObject)
         {
             // Line 409: 设置标题
-            m_UI.SetItemName(selectedUnityObject);
+            m_Adapter.SetItemName(selectedUnityObject);
 
             // Line 410-416: 获取RootSize
             NativeRootSize rootSize = default;
@@ -321,7 +323,7 @@ namespace Unity.MemoryProfiler.UI.Services
             var totalAllocated = nativeSize;
 
             // 清空Basic组
-            m_UI.ClearGroup(SelectionDetailsPanel.GroupNameBasic);
+            m_Adapter.ClearGroup(SelectionDetailsPanelAdapter.GroupNameBasic);
 
             // Line 426-430: 显示Total Allocated（如果有多个尺寸）
             if (multipleSizesToDisplay)
@@ -361,7 +363,7 @@ namespace Unity.MemoryProfiler.UI.Services
             // Line 456-461: 显示Runtime estimation
             if (selectedUnityObject.HasNativeSide)
             {
-                m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, "Runtime estimation",
+                m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, "Runtime estimation",
                     $"{EditorUtility.FormatBytes((long)selectedUnityObject.NativeSize)}",
                     $"{selectedUnityObject.NativeSize:N0} B\n\nThis is the value that would've been returned by calling GetRuntimeMemorySizeLong at runtime. It combines native and gpu allocation estimates.");
             }
@@ -370,13 +372,13 @@ namespace Unity.MemoryProfiler.UI.Services
             var refCountExtra = (selectedUnityObject.IsFullUnityObjet && selectedUnityObject.TotalRefCount > 0) 
                 ? $"({selectedUnityObject.NativeRefCount} Native + {selectedUnityObject.ManagedRefCount} Managed)" 
                 : string.Empty;
-            m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, "Referenced By", 
+            m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, "Referenced By", 
                 $"{selectedUnityObject.TotalRefCount} {refCountExtra}{(selectedUnityObject.IsFullUnityObjet ? " + 2 Self References" : "")}");
 
             // Line 466-469: Bug检测（Invalid Managed Object）
             if (selectedUnityObject.IsFullUnityObjet && !selectedUnityObject.ManagedObjectData.IsValid)
             {
-                m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, "Bug!", 
+                m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, "Bug!", 
                     "This Native Object is associated with an invalid Managed Object, " + TextContent.InvalidObjectPleaseReportABugMessage);
             }
 
@@ -392,22 +394,22 @@ namespace Unity.MemoryProfiler.UI.Services
                             Level = InfoBox.IssueLevel.Warning,
                             Message = tuple.Item2
                         };
-                        m_UI.AddInfoBox(SelectionDetailsPanel.GroupNameMetaData, infoBox);
+                        m_Adapter.AddInfoBox(SelectionDetailsPanelAdapter.GroupNameMetaData, infoBox);
                     }
                     else
                     {
-                        m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameMetaData, tuple.Item1, tuple.Item2, "");
+                        m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameMetaData, tuple.Item1, tuple.Item2, "");
                     }
                 }
             }
 
             // Line 489-509: Advanced组显示
-            m_UI.ClearGroup(SelectionDetailsPanel.GroupNameAdvanced);
+            m_Adapter.ClearGroup(SelectionDetailsPanelAdapter.GroupNameAdvanced);
             
             if (selectedUnityObject.HasNativeSide)
             {
                 // Instance ID
-                m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameAdvanced, "Instance ID", selectedUnityObject.InstanceId.ToString());
+                m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameAdvanced, "Instance ID", selectedUnityObject.InstanceId.ToString());
                 
                 // Flags and HideFlags（使用我们自己的PathsToRootTreeNode中的逻辑）
                 var flagsLabel = "";
@@ -423,21 +425,21 @@ namespace Unity.MemoryProfiler.UI.Services
                 
                 if (string.IsNullOrEmpty(flagsLabel))
                     flagsLabel = "None";
-                m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameAdvanced, "Flags", flagsLabel, flagsTooltip);
+                m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameAdvanced, "Flags", flagsLabel, flagsTooltip);
                 
                 if (string.IsNullOrEmpty(hideFlagsLabel))
                     hideFlagsLabel = "None";
-                m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameAdvanced, "HideFlags", hideFlagsLabel, hideFlagsTooltip);
+                m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameAdvanced, "HideFlags", hideFlagsLabel, hideFlagsTooltip);
                 
                 // Native Address
-                m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameAdvanced, "Native Address", 
+                m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameAdvanced, "Native Address", 
                     Unity.MemoryProfiler.Editor.DetailFormatter.FormatPointer(selectedUnityObject.NativeObjectData.GetObjectPointer(m_CachedSnapshot, false)));
             }
             
             if (selectedUnityObject.HasManagedSide)
             {
                 // Managed Address
-                m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameAdvanced, "Managed Address", 
+                m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameAdvanced, "Managed Address", 
                     Unity.MemoryProfiler.Editor.DetailFormatter.FormatPointer(selectedUnityObject.ManagedObjectData.GetObjectPointer(m_CachedSnapshot, false)));
             }
 
@@ -447,7 +449,7 @@ namespace Unity.MemoryProfiler.UI.Services
             // Line 517-519: Self References提示
             if (selectedUnityObject.IsFullUnityObjet)
             {
-                m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, "Self References", 
+                m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, "Self References", 
                     "The Managed and Native parts of this UnityEngine.Object reference each other. This is normal."
                     + (selectedUnityObject.TotalRefCount == 0 ? " Nothing else references them though so the Native part keeps the Managed part alive." : ""));
             }
@@ -456,7 +458,7 @@ namespace Unity.MemoryProfiler.UI.Services
             if (selectedUnityObject.HasManagedSide)
             {
                 var unityObjectFields = m_FieldsBuilder.BuildFieldsTree(selectedUnityObject.ManagedObjectData);
-                m_UI.SetupManagedObjectInspector(unityObjectFields);
+                m_Adapter.SetupManagedObjectInspector(unityObjectFields);
             }
             else
             {
@@ -475,23 +477,23 @@ namespace Unity.MemoryProfiler.UI.Services
         private void HandleNativeAllocationDetails(SourceIndex source, string fallbackName, string fallbackDescription)
         {
             // Line 107: 设置名称
-            m_UI.SetItemName(source);
+            m_Adapter.SetItemName(source);
             
             // Line 108: 获取Native Size
             var nativeSize = (long)m_CachedSnapshot.NativeAllocations.Size[source.Index];
             
             // 清空Basic组
-            m_UI.ClearGroup(SelectionDetailsPanel.GroupNameBasic);
+            m_Adapter.ClearGroup(SelectionDetailsPanelAdapter.GroupNameBasic);
             
             // Line 112: 显示Native Size
-            m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, "Native Size", 
+            m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, "Native Size", 
                 EditorUtility.FormatBytes(nativeSize), 
                 $"{nativeSize:N0} B");
 
             // Line 110-114: 获取并显示Found References（简化实现，不使用Feature Flag）
             var references = new List<ObjectData>();
             ObjectConnection.GetAllReferencingObjects(m_CachedSnapshot, source, ref references);
-            m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, "Found References", 
+            m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, "Found References", 
                 references.Count.ToString(), 
                 TextContent.NativeAllocationFoundReferencesHint);
 
@@ -501,7 +503,7 @@ namespace Unity.MemoryProfiler.UI.Services
             if (rootReferenceId <= 0)
             {
                 // 显示错误InfoBox（简化实现，不检查FeatureFlag和InternalMode）
-                m_UI.AddInfoBox(SelectionDetailsPanel.GroupNameBasic, new InfoBox
+                m_Adapter.AddInfoBox(SelectionDetailsPanelAdapter.GroupNameBasic, new InfoBox
                 {
                     Level = InfoBox.IssueLevel.Error,
                     Message = TextContent.UnknownUnknownAllocationsErrorBoxMessage,
@@ -516,7 +518,7 @@ namespace Unity.MemoryProfiler.UI.Services
             else
             {
                 // Line 134-141: 给出CallStacks提示（简化实现）
-                m_UI.AddInfoBox(SelectionDetailsPanel.GroupNameBasic, new InfoBox
+                m_Adapter.AddInfoBox(SelectionDetailsPanelAdapter.GroupNameBasic, new InfoBox
                 {
                     Level = InfoBox.IssueLevel.Info,
                     Message = TextContent.NativeAllocationInternalModeCallStacksInfoBoxMessage,
@@ -532,7 +534,7 @@ namespace Unity.MemoryProfiler.UI.Services
         private void HandleGfxResourceDetails(SourceIndex source, string fallbackName, string fallbackDescription)
         {
             // Line 191: 设置名称（使用fallbackName）
-            m_UI.SetItemName(fallbackName ?? "Graphics Resource");
+            m_Adapter.SetItemName(fallbackName ?? "Graphics Resource");
             
             // Line 192-194: 获取Graphics相关信息
             var gfxSize = (long)m_CachedSnapshot.NativeGfxResourceReferences.GfxSize[source.Index];
@@ -540,22 +542,22 @@ namespace Unity.MemoryProfiler.UI.Services
             var gfxResourceId = (long)m_CachedSnapshot.NativeGfxResourceReferences.GfxResourceId[source.Index];
             
             // 清空组
-            m_UI.ClearGroup(SelectionDetailsPanel.GroupNameBasic);
-            m_UI.ClearGroup(SelectionDetailsPanel.GroupNameAdvanced);
+            m_Adapter.ClearGroup(SelectionDetailsPanelAdapter.GroupNameBasic);
+            m_Adapter.ClearGroup(SelectionDetailsPanelAdapter.GroupNameAdvanced);
             
             // Line 195: 显示Graphics Size
-            m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, "Graphics Size", 
+            m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, "Graphics Size", 
                 EditorUtility.FormatBytes(gfxSize), 
                 $"{gfxSize:N0} B");
             
             // Line 196-197: 显示Root ID和Gfx Resource ID（Advanced组）
-            m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameAdvanced, "Root ID", rootId.ToString());
-            m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameAdvanced, "Gfx Resource ID", gfxResourceId.ToString());
+            m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameAdvanced, "Root ID", rootId.ToString());
+            m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameAdvanced, "Gfx Resource ID", gfxResourceId.ToString());
 
             // Line 199-206: 检查是否是Unrooted Graphics Resource（错误）
             if (rootId <= 0)
             {
-                m_UI.AddInfoBox(SelectionDetailsPanel.GroupNameBasic, new InfoBox
+                m_Adapter.AddInfoBox(SelectionDetailsPanelAdapter.GroupNameBasic, new InfoBox
                 {
                     Level = InfoBox.IssueLevel.Error,
                     Message = TextContent.UnrootedGraphcisResourceErrorBoxMessage,
@@ -564,7 +566,7 @@ namespace Unity.MemoryProfiler.UI.Services
             // Line 207-215: 如果有CallStacks，显示提示和CallStacks
             else if (m_CachedSnapshot.NativeCallstackSymbols.Count > 0)
             {
-                m_UI.AddInfoBox(SelectionDetailsPanel.GroupNameCallStacks, new InfoBox
+                m_Adapter.AddInfoBox(SelectionDetailsPanelAdapter.GroupNameCallStacks, new InfoBox
                 {
                     Level = InfoBox.IssueLevel.Info,
                     Message = TextContent.GraphcisResourceWithSnapshotWithCallStacksInfoBoxMessage,
@@ -582,31 +584,31 @@ namespace Unity.MemoryProfiler.UI.Services
         private void HandleNativeRootReferenceDetails(SourceIndex source, string fallbackName, string fallbackDescription, long childCount)
         {
             // Line 220: 设置名称
-            m_UI.SetItemName(source);
+            m_Adapter.SetItemName(source);
             
             // Line 221: 获取Root Reference的Area和Object名称
             GetRootReferenceName(m_CachedSnapshot, source, out var areaName, out var objectName);
             
             // 清空Basic组
-            m_UI.ClearGroup(SelectionDetailsPanel.GroupNameBasic);
+            m_Adapter.ClearGroup(SelectionDetailsPanelAdapter.GroupNameBasic);
             
             // Line 223-224: 显示Area
             if (!string.IsNullOrEmpty(areaName))
-                m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, "Area", areaName);
+                m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, "Area", areaName);
             
             // Line 226-227: 显示Object Name
             if (!string.IsNullOrEmpty(objectName))
-                m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, "Object Name", objectName);
+                m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, "Object Name", objectName);
             
             // Line 229-230: 显示Accumulated Size
             var accumulatedSize = (long)m_CachedSnapshot.NativeRootReferences.AccumulatedSize[source.Index];
-            m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, "Size", 
+            m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, "Size", 
                 EditorUtility.FormatBytes(accumulatedSize), 
                 $"{accumulatedSize:N0} B");
             
             // Line 232-233: 显示Child Count（如果有）
             if (childCount > 0)
-                m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, "Child Count", childCount.ToString());
+                m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, "Child Count", childCount.ToString());
             
             // Line 235-276: 动态分配分解按钮
             // TODO: Phase 2 - 实现FeatureFlag和Settings系统后再添加此功能
@@ -637,9 +639,9 @@ namespace Unity.MemoryProfiler.UI.Services
         /// </summary>
         private void HandleInvalidObjectDetails(UnifiedType type)
         {
-            m_UI.SetItemName("Invalid Object");
+            m_Adapter.SetItemName("Invalid Object");
 
-            m_UI.AddInfoBox(SelectionDetailsPanel.GroupNameBasic, new InfoBox()
+            m_Adapter.AddInfoBox(SelectionDetailsPanelAdapter.GroupNameBasic, new InfoBox()
             {
                 Level = InfoBox.IssueLevel.Info,
                 Message = UIContent.TextContent.InvalidObjectErrorBoxMessage,
@@ -653,8 +655,8 @@ namespace Unity.MemoryProfiler.UI.Services
         /// </summary>
         private void HandleGroupDetails(string title, string description)
         {
-            m_UI.SetItemName(title);
-            m_UI.SetDescription(description);
+            m_Adapter.SetItemName(title);
+            m_Adapter.SetDescription(description);
 
         }
 
@@ -668,7 +670,7 @@ namespace Unity.MemoryProfiler.UI.Services
         /// </summary>
         private void AddBasicGroupSizeUILine(string description, ulong value)
         {
-            m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, description, 
+            m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, description, 
                 EditorUtility.FormatBytes((long)value), 
                 $"{value:N0} B");
         }
@@ -727,7 +729,7 @@ namespace Unity.MemoryProfiler.UI.Services
                     "or by ensuring that each referencing object is no longer referenced itself, so that all of them can be unloaded."
                     : "Nothing is referencing this Object anymore, so it should be collected with the next GC.Collect.");
 
-            m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, k_StatusLabelText, statusSummary, hint);
+            m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, k_StatusLabelText, statusSummary, hint);
         }
 
         /// <summary>
@@ -766,12 +768,12 @@ namespace Unity.MemoryProfiler.UI.Services
                         k_TriggerAssetGCHint)
                 );
 
-            m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, k_StatusLabelText, statusSummary, hint);
+            m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, k_StatusLabelText, statusSummary, hint);
 
             if (selectedUnityObject.TotalRefCount == 0 && !selectedUnityObject.IsDontUnload
                 && selectedUnityObject.IsRuntimeCreated && string.IsNullOrEmpty(selectedUnityObject.NativeObjectName))
             {
-                m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, "Tip", "This leaked dynamically created Asset doesn't have a name, which will make it harder to find its source. " +
+                m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, "Tip", "This leaked dynamically created Asset doesn't have a name, which will make it harder to find its source. " +
                     "As a first step, search your entire project code for any instances of " + newObjectTypeConstruction +
                     " and every 'Instantiate()' or similar call that would create an instance of this type, " +
                     "and make sure you set the '.name' property of the resulting object to something that will make it easier to understand what this object is being created for.");
@@ -813,7 +815,7 @@ namespace Unity.MemoryProfiler.UI.Services
                 }
             }
 
-            m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, k_StatusLabelText, statusSummary, hint);
+            m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, k_StatusLabelText, statusSummary, hint);
         }
 
         /// <summary>
@@ -834,7 +836,7 @@ namespace Unity.MemoryProfiler.UI.Services
                     "or its parents are destroyed via 'Destroy()'. " +
                     (selectedUnityObject.HasManagedSide ? "Its Managed memory may live on as a Leaked Shell Object if something else that was not unloaded with it still references it." : ""));
 
-            m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, k_StatusLabelText, statusSummary, hint);
+            m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, k_StatusLabelText, statusSummary, hint);
         }
 
         /// <summary>
@@ -846,7 +848,7 @@ namespace Unity.MemoryProfiler.UI.Services
             var statusSummary = "Native Manager";
             var hint = "This is Native Manager that is represents one of Unity's subsystems.";
 
-            m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameBasic, k_StatusLabelText, statusSummary, hint);
+            m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameBasic, k_StatusLabelText, statusSummary, hint);
         }
 
         #endregion
@@ -918,48 +920,48 @@ namespace Unity.MemoryProfiler.UI.Services
             // 6. 添加Copy按钮（智能文本）
             var copyButtonText = $"Copy {(furthercallstackCount > 0 ? "First " : (callstackCount > 1 ? "All " : ""))}{callstackCount} Call Stack{(callstackCount > 1 ? "s" : "")}";
             
-            m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameCallStacks, copyButtonText, copyButtonText, copyButtonText + " to the clipboard.",
+            m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameCallStacks, copyButtonText, copyButtonText, copyButtonText + " to the clipboard.",
                 DynamicElementOptions.Button, 
                 () => CopyAllCallStacksToClipboard(BuildCallStackTexts(callstackCount, out var _, out var _, out var _, forCopy: true)));
 
             // 7. 如果有更多CallStacks，添加Copy All按钮和Further Call Stacks计数
             if (furthercallstackCount > 0)
             {
-                m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameCallStacks, $"Copy All Call Stacks", "Copy All Call Stacks", 
+                m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameCallStacks, $"Copy All Call Stacks", "Copy All Call Stacks", 
                     $"Copy All {callstackCount + furthercallstackCount} Call Stacks to the clipboard.",
                     DynamicElementOptions.Button, 
                     () => CopyAllCallStacksToClipboard(BuildCallStackTexts(callstackCount + furthercallstackCount, out var _, out var _, out var _, forCopy: true)));
 
-                m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameCallStacks, $"Further Call Stacks", furthercallstackCount.ToString());
+                m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameCallStacks, $"Further Call Stacks", furthercallstackCount.ToString());
             }
 
             // 8. 添加Allocations Count
-            m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameCallStacks, "Allocations Count", allocationCount.ToString());
+            m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameCallStacks, "Allocations Count", allocationCount.ToString());
             
             // 9. 添加Call Stacks计数
-            m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameCallStacks, 
+            m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameCallStacks, 
                 $"{(furthercallstackCount > 0 ? "Shown " : "")}Call Stacks", callstackCount.ToString());
 
             // 10. 添加Clickable Call Stacks Toggle
             // 注意：WPF中无法跳转到源文件，但保留Toggle以对齐Unity
-            m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameCallStacks, "Clickable Call Stacks", "Clickable Call Stacks",
+            m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameCallStacks, "Clickable Call Stacks", "Clickable Call Stacks",
                 "Call Stacks can either be clickable (leading to the source file) or selectable. Toggle this off if you want them to be selectable.\nNote: File jumping is not available in WPF version.",
                 DynamicElementOptions.Toggle | (m_ClickableCallStacks ? DynamicElementOptions.ToggleOn : 0), 
                 () =>
                 {
                     m_ClickableCallStacks = !m_ClickableCallStacks;
-                    m_UI.ClearGroup(SelectionDetailsPanel.GroupNameCallStacks);
+                    m_Adapter.ClearGroup(SelectionDetailsPanelAdapter.GroupNameCallStacks);
                     AddCallStacksInfoToUI(sourceIndex);  // 递归调用，重新渲染
                 });
 
             // 11. 添加Show Address in Call Stacks Toggle
-            m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameCallStacks, "Show Address in Call Stacks", "Show Address in Call Stacks",
+            m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameCallStacks, "Show Address in Call Stacks", "Show Address in Call Stacks",
                 "Show or hide Address in Call Stacks.",
                 DynamicElementOptions.Toggle | (m_AddressInCallStacks ? DynamicElementOptions.ToggleOn : 0), 
                 () =>
                 {
                     m_AddressInCallStacks = !m_AddressInCallStacks;
-                    m_UI.ClearGroup(SelectionDetailsPanel.GroupNameCallStacks);
+                    m_Adapter.ClearGroup(SelectionDetailsPanelAdapter.GroupNameCallStacks);
                     AddCallStacksInfoToUI(sourceIndex);  // 递归调用，重新渲染
                 });
 
@@ -973,7 +975,7 @@ namespace Unity.MemoryProfiler.UI.Services
             const bool k_UseFullDetailsPanelWidth = true;
             foreach (var text in callStackTexts)
             {
-                m_UI.AddDynamicElement(SelectionDetailsPanel.GroupNameCallStacks,
+                m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameCallStacks,
                     text.Item1, k_UseFullDetailsPanelWidth ? $"{text.Item2}{text.Item3}" : text.Item2 + text.Item3, 
                     options:
                     (k_UseFullDetailsPanelWidth ? 0 : DynamicElementOptions.ShowTitle) | 

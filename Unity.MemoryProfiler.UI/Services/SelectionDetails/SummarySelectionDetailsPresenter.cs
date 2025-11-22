@@ -14,23 +14,23 @@ namespace Unity.MemoryProfiler.UI.Services.SelectionDetails
         public void Present(in SelectionDetailsContext context)
         {
             var panel = context.View;
+            var adapter = panel.Adapter;
             var node = (SummarySelectionNode)context.Node;
 
-            panel.ClearAllGroups();
-            panel.SetItemName(node.Title);
-            panel.SetDescription(node.Description);
+            adapter.ClearAllGroups();
+            adapter.SetItemName(node.Title);
+            adapter.SetDescription(node.Description);
 
             if (node.Metrics.Count > 0)
             {
-                panel.ShowGroup(SelectionDetailsPanel.GroupNameBasic);
                 foreach (var metric in node.Metrics)
                 {
                     var options = DynamicElementOptions.ShowTitle;
                     if (metric.Selectable)
                         options |= DynamicElementOptions.SelectableLabel;
 
-                    panel.AddDynamicElement(
-                        SelectionDetailsPanel.GroupNameBasic,
+                    adapter.AddDynamicElement(
+                        SelectionDetailsPanelAdapter.GroupNameBasic,
                         metric.Label,
                         metric.Value,
                         metric.Tooltip,
@@ -40,9 +40,8 @@ namespace Unity.MemoryProfiler.UI.Services.SelectionDetails
 
             if (!string.IsNullOrEmpty(node.DocumentationUrl))
             {
-                panel.ShowGroup(SelectionDetailsPanel.GroupNameHelp);
-                panel.AddDynamicElement(
-                    SelectionDetailsPanel.GroupNameHelp,
+                adapter.AddDynamicElement(
+                    SelectionDetailsPanelAdapter.GroupNameHelp,
                     "Documentation",
                     node.DocumentationUrl,
                     tooltip: node.DocumentationUrl,
@@ -50,7 +49,6 @@ namespace Unity.MemoryProfiler.UI.Services.SelectionDetails
             }
 
             panel.HideManagedObjectInspector();
-            panel.HideMemoryInfo();
             panel.HideReferences();
         }
     }

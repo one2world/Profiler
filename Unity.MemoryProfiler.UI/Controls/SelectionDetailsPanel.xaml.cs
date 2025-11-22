@@ -78,6 +78,7 @@ namespace Unity.MemoryProfiler.UI.Controls
             // 清空并隐藏特殊控件
             HideManagedObjectInspector();
             HideReferences();
+            HideCallStackTreeView();
         }
 
         /// <summary>
@@ -167,6 +168,7 @@ namespace Unity.MemoryProfiler.UI.Controls
         public void HideCallStackTreeView()
         {
             CallStackTreeViewControl.ClearData();
+            ViewModel.CallStacks.Hide();
         }
 
         /// <summary>

@@ -86,8 +86,15 @@ namespace Unity.MemoryProfiler.UI.Controls
                             UseShellExecute = false,
                             CreateNoWindow = true
                         };
-                        Process.Start(startInfo);
-                        return;
+                        var process = Process.Start(startInfo);
+                        if (process != null)
+                        {
+                            return;
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine($"Failed to start VS Code process for {fullPath}:{lineNumber}");
+                        }
                     }
                     catch (Exception ex)
                     {

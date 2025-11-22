@@ -1,0 +1,45 @@
+<UserControl x:Class="Unity.MemoryProfiler.UI.Controls.CallStackTreeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:dxg="http://schemas.devexpress.com/winfx/2008/xaml/grid"
+             mc:Ignorable="d" 
+             d:DesignHeight="300" d:DesignWidth="400">
+    <Grid>
+        <dxg:TreeListControl x:Name="TreeList" 
+                            ShowBorder="False" 
+                            SelectionMode="Row">
+            <dxg:TreeListControl.View>
+                <dxg:TreeListView AutoWidth="False" 
+                                 NavigationStyle="Row" 
+                                 AllowEditing="False" 
+                                 ShowIndicator="False" 
+                                 TreeDerivationMode="ChildNodesSelector" 
+                                 ChildNodesPath="Children" 
+                                 ShowVerticalLines="False" 
+                                 ShowHorizontalLines="True" 
+                                 AllowPerPixelScrolling="True" 
+                                 AllowCascadeUpdate="True" 
+                                 AllowSorting="False"
+                                 ShowAutoFilterRow="False" 
+                                 AllowColumnFiltering="False" 
+                                 AllowScrollAnimation="True"
+                                 RowDoubleClick="OnRowDoubleClick"/>
+            </dxg:TreeListControl.View>
+            <dxg:TreeListControl.Columns>
+                <dxg:TreeListColumn Header="Call Stack" 
+                                   FieldName="Description" 
+                                   MinWidth="200" 
+                                   AllowSorting="False" 
+                                   FixedWidth="False"/>
+                <dxg:TreeListColumn Header="File:Line" 
+                                   FieldName="FileLine" 
+                                   Width="250" 
+                                   AllowSorting="False" 
+                                   FixedWidth="True"/>
+            </dxg:TreeListControl.Columns>
+        </dxg:TreeListControl>
+    </Grid>
+</UserControl>
+

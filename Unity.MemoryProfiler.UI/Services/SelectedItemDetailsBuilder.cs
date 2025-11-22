@@ -227,6 +227,9 @@ namespace Unity.MemoryProfiler.UI.Services
             m_Adapter.AddDynamicElement(SelectionDetailsPanelAdapter.GroupNameAdvanced, "Managed Address", 
                 Unity.MemoryProfiler.Editor.DetailFormatter.FormatPointer(objectAddress));
 
+            // 添加 Managed Callstack (如果有数据)
+            AddManagedCallStacksInfoToUI(objectAddress);
+
         }
 
         /// <summary>
@@ -1114,6 +1117,63 @@ namespace Unity.MemoryProfiler.UI.Services
             }
             
             return true;
+        }
+
+        #endregion
+
+        #region Managed CallStacks
+
+        /// <summary>
+        /// 添加 Managed CallStacks 信息到 UI
+        /// </summary>
+        private void AddManagedCallStacksInfoToUI(ulong objectAddress)
+        {
+            // 1. 检查数据可用性
+            if (m_CachedSnapshot.ManagedAllocations == null)
+                return;
+
+            // 2. 获取 CallStack
+            var callStack = m_CachedSnapshot.ManagedAllocations.GetCallStackForAddress(objectAddress);
+            if (callStack == null || callStack.Frames.Count == 0)
+                return;
+
+            // 3. 构建 TreeListView 数据
+            var nodes = BuildCallStackTreeNodes(callStack);
+            if (nodes.Count == 0)
+                return;
+
+            // 4. 获取源码目录配置
+            var sourceDirectories = ManagedObjectsConfigService.GetSourceDirectories();
+
+            // 5. 设置到 UI
+            m_UI.SetupCallStackTreeView(nodes, sourceDirectories);
+        }
+
+        /// <summary>
+        /// 构建 CallStack TreeListView 节点
+        /// </summary>
+        private List<CallStackNode> BuildCallStackTreeNodes(Unity.MemoryProfiler.Editor.Managed.CallStack callStack)
+        {
+            var nodes = new List<CallStackNode>();
+
+            // 从调用栈底部（最外层）到顶部（分配点）遍历
+            // 参考 ManagedObjectsDataBuilder 的实现
+            for (int i = callStack.Frames.Count - 1; i >= 0; i--)
+            {
+                var frame = callStack.Frames[i];
+                
+                var node = new CallStackNode
+                {
+                    Description = $"{frame.Module}!{frame.Function}",
+                    FileLine = string.IsNullOrEmpty(frame.FilePath) ? "" : $"{frame.FilePath}:{frame.LineNumber}",
+                    FilePath = frame.FilePath,
+                    LineNumber = frame.LineNumber
+                };
+
+                nodes.Add(node);
+            }
+
+            return nodes;
         }
 
         #endregion

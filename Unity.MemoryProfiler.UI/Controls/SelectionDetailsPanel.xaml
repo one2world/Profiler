@@ -190,14 +190,13 @@
                                   Margin="0,5"
                                   ToolTip="Show or hide Address in Call Stacks."/>
                         
-                        <!-- 堆栈内容 -->
+                        <!-- 堆栈内容 - TreeListView -->
                         <Expander Header="Allocation Call Stack" 
-                                  IsExpanded="False"
+                                  IsExpanded="True"
                                   Margin="0,5">
-                            <TextBlock Text="{Binding CallStacks.CallStackText}"
-                                       TextWrapping="Wrap"
-                                       FontFamily="Consolas"
-                                       Margin="10,5"/>
+                            <local:CallStackTreeView x:Name="CallStackTreeViewControl"
+                                                     Height="300"
+                                                     Margin="10,5"/>
                         </Expander>
                     </StackPanel>
                 </Expander>

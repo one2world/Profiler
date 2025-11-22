@@ -147,6 +147,29 @@ namespace Unity.MemoryProfiler.UI.Controls
         }
 
         /// <summary>
+        /// 设置 CallStack TreeView 的数据
+        /// </summary>
+        public void SetupCallStackTreeView(System.Collections.Generic.List<CallStackNode> nodes, System.Collections.Generic.List<string>? sourceDirectories = null)
+        {
+            if (nodes == null || nodes.Count == 0)
+            {
+                HideCallStackTreeView();
+                return;
+            }
+
+            CallStackTreeViewControl.SetData(nodes, sourceDirectories);
+            ViewModel.CallStacks.Show();
+        }
+
+        /// <summary>
+        /// 隐藏 CallStack TreeView
+        /// </summary>
+        public void HideCallStackTreeView()
+        {
+            CallStackTreeViewControl.ClearData();
+        }
+
+        /// <summary>
         /// 检查对象是否有引用数据
         /// </summary>
         private static bool HasReferencesData(CachedSnapshot snapshot, SourceIndex sourceIndex)
